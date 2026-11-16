@@ -25,7 +25,8 @@ from app.core.db import SessionLocal
 from app.ai.llm import get_llm
 from app.models.entities import Alert, ScanRun, TradePlan
 from app.services import audit, jobs
-from app.services import committee as _committee  # noqa: F401 - registra l'handler del job
+from app.backtest import runner as _backtest  # noqa: F401 - registra l'handler del job
+from app.services import committee as _committee  # registra anche l'handler del job
 from app.services.planner import expire_plans, generate_for_scan, plans_for_user_portfolios
 from app.services.scanner import enqueue_scan, run_scan
 

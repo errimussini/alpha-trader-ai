@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.market_data.base import MarketDataAdapter
 from app.ai.committee import run_committee
+from app.backtest.runner import latest_calibration
 from app.analytics.scoring import MODEL_VERSION
 from app.analytics.planner import PLANNER_VERSION, compute_levels, return_correlation
 from app.core.config import get_settings
@@ -171,13 +172,26 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
         {"name": "Time stop in pareggio", "exit": lv.entry,
          "pnl_base": str(-(2 * res.entry_fee_base)) if res.entry_fee_base is not None else None},
     ]
+    # Probabilità ed EV SOLO da una calibrazione walk-forward fuori campione validata (Fase 5)
+    prob, ev_base, calib = None, None, {}
+    cal = latest_calibration(db)
+    if cal is not None and res.quantity > 0:
+        ev_row, c = cal
+        blk = c["by_setup"].get(signal.setup) if c["by_setup"].get(signal.setup, {}).get("validated") else c["overall"]
+        prob = D(round(blk["win_rate"], 4))
+        ev_base = (D(blk["ev_r"]) * res.est_loss_at_stop_base).quantize(Decimal("0.01"))
+        calib = {"model_evaluation_id": ev_row.id, "period": [str(ev_row.period_start), str(ev_row.period_end)],
+                 "scope": signal.setup if blk is not c["overall"] else "overall", "trades": blk["trades"],
+                 "win_rate_ci95": blk["win_rate_ci95"], "ev_r": blk["ev_r"], "ev_r_ci95": blk["ev_r_ci95"],
+                 "ev_base_ci95": [str((D(x) * res.est_loss_at_stop_base).quantize(Decimal("0.01"))) for x in blk["ev_r_ci95"]],
+                 "note": "Stima da operazioni simulate fuori campione (walk-forward), costi inclusi: non è una garanzia."}
     plan = TradePlan(
         **base, entry_price=entry, entry_low=D(lv.entry_low), entry_high=D(lv.entry_high), stop_loss=D(lv.stop),
         take_profit_1=D(lv.tp1), take_profit_2=D(lv.tp2), tp1_close_fraction=D(lv.tp1_fraction),
         trailing_stop=lv.trailing, quantity=res.quantity, notional_base=res.notional_base,
         est_loss_at_stop_base=res.est_loss_at_stop_base, est_gain_tp1_base=res.est_gain_tp1_base,
-        est_gain_tp2_base=res.est_gain_tp2_base, reward_risk_net=res.reward_risk_net, calibrated_probability=None,
-        expected_value_base=None, invalidation_conditions=lv.invalidation, status=status, status_reason=reason,
+        est_gain_tp2_base=res.est_gain_tp2_base, reward_risk_net=res.reward_risk_net, calibrated_probability=prob,
+        expected_value_base=ev_base, calibration=calib, invalidation_conditions=lv.invalidation, status=status, status_reason=reason,
         risk_assessment_id=ra.id, entry_conditions=lv.entry_conditions, avoid_conditions=lv.avoid_conditions,
         early_exit_conditions=lv.early_exit, stop_rationale=lv.stop_rationale, scenarios=scenarios,
         correlations={"values": corr, "max": max_corr, "notes": pm_notes}, gross_return_tp1_pct=gross.quantize(Decimal("0.01")),

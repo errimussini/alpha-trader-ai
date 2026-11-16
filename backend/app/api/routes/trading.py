@@ -14,7 +14,7 @@ from app.adapters.market_data.base import MarketDataAdapter
 from app.api.deps import Pagination, current_user, market_data, require_role
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.errors import AppError, NotFound, NotYetImplemented
+from app.core.errors import AppError, NotFound
 from app.core.security import Role
 from app.models.entities import Instrument, ModelEvaluation, RiskAssessment, ScanRun, TradePlan, User
 from app.services.planner import generate_for_scan, generate_plan, get_signal
@@ -134,8 +134,9 @@ def risk_check(body: RiskCheckIn, user: User = Depends(current_user), db: Sessio
     return RiskCheckOut(assessment_id=ra.id, approved=res.approved, result=res.to_dict(), inputs=inputs)
 
 
-@router.get("/backtests")
-def backtests(pg: Pagination = Depends(), db: Session = Depends(get_db), _: User = Depends(current_user)):
+@router.get("/evaluations")
+def evaluations(pg: Pagination = Depends(), db: Session = Depends(get_db), _: User = Depends(current_user)):
+    """Valutazioni dei modelli (backtest, walk-forward, prospettiche)."""
     total = db.execute(select(func.count(ModelEvaluation.id))).scalar_one()
     rows = db.execute(select(ModelEvaluation).order_by(ModelEvaluation.created_at.desc())
                       .offset(pg.offset).limit(pg.page_size)).scalars()
@@ -143,8 +144,3 @@ def backtests(pg: Pagination = Depends(), db: Session = Depends(get_db), _: User
               "period_start": r.period_start, "period_end": r.period_end, "out_of_sample": r.is_out_of_sample,
               "metrics": r.metrics, "created_at": r.created_at} for r in rows]
     return {"items": items, "total": total, "page": pg.page, "page_size": pg.page_size}
-
-
-@router.post("/backtests", status_code=501)
-def run_backtest(_: User = Depends(require_role(Role.ANALYST))):
-    raise NotYetImplemented("Il Backtest Engine è previsto in Fase 5.")

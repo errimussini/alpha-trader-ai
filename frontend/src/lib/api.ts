@@ -206,3 +206,37 @@ export const TOOL_LABELS: Record<string, string> = {
   explain_selection: "Motivazioni del ranking", check_budget: "Motore di rischio", get_positions: "Posizioni aperte",
   get_performance: "Performance del portafoglio",
 };
+
+// ---------------------------------------------------------------- Fase 5: backtest
+export type Metrics = Record<string, number | string | null | number[] | Record<string, number> | undefined> & {
+  net_return_pct?: number | null; cagr_pct?: number | null; max_drawdown_pct?: number | null; sharpe?: number | null;
+  sortino?: number | null; profit_factor?: number | null; win_rate_pct?: number | null; trades?: number;
+  expectancy_base?: number | null; expectancy_r?: number | null; turnover_annual?: number | null; avg_exposure_pct?: number | null;
+  volatility_pct?: number | null; days?: number; start?: string; end?: string; win_rate_ci95_pct?: number[];
+};
+export type CalibBlock = { trades: number; win_rate?: number; win_rate_ci95?: number[]; ev_r?: number; ev_r_ci95?: number[];
+  avg_win_r?: number; avg_loss_r?: number; validated: boolean };
+export type BTTrade = { ticker: string; setup: string; regime: string; score: number; entry_date: string; entry_price: number;
+  stop: number; tp1: number; qty: number; exit_date: string; exit_reason: string; pnl_base: number; r_multiple: number | null;
+  holding_days: number };
+export type BacktestResults = {
+  engine_version: string; period: [string, string]; split_bounds: Record<string, [string, string]>;
+  segments: Record<"train" | "validation" | "test" | "full", Metrics>;
+  walk_forward: { train_days: number; test_days: number; grid_min_score: number[]; metrics: Metrics; equity: [string, number][];
+    windows: { train: [string, string]; test: [string, string]; chosen_min_score: number; result: Metrics }[] };
+  calibration: { overall: CalibBlock; by_setup: Record<string, CalibBlock>; min_trades: number; is_demo: boolean; note: string };
+  bootstrap: Record<"full" | "walk_forward", { available: boolean; note?: string; trades?: number;
+    expectancy_base_p2_5_p50_p97_5?: number[]; total_pnl_base_p2_5_p50_p97_5?: number[]; profit_factor_p2_5_p50_p97_5?: number[];
+    prob_expectancy_negative_pct?: number }>;
+  stress: Record<string, Metrics>; by_regime_trades: Record<string, Metrics>; by_regime_days: Record<string, { days: number; annualized_return_pct: number }>;
+  by_setup: Record<string, Metrics>; benchmarks: Record<string, Metrics>; benchmark_curve: { ticker?: string; series?: [string, number][] };
+  equity: [string, number][]; drawdown: [string, number][]; trades: BTTrade[]; trades_total: number; universe_size: number;
+  is_demo: boolean; bias_controls: Record<string, string>; notes: string[]; missing?: string[]; disclaimer: string;
+};
+export type BacktestRun = {
+  id: number; name: string; status: "QUEUED" | "RUNNING" | "DONE" | "FAILED"; engine_version: string;
+  params: { params: Record<string, unknown>; tickers?: string[] | null; train_days?: number; test_days?: number };
+  universe_size: number; period_start: string | null; period_end: string | null; error: string | null; is_demo: boolean;
+  summary: Metrics & { oos_walk_forward?: Metrics; test?: Metrics; calibration_validated?: boolean };
+  requested_by: string; created_at: string; finished_at: string | null; results?: BacktestResults; universe?: string[];
+};

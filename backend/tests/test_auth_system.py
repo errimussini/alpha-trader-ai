@@ -47,9 +47,7 @@ def test_only_admin_changes_mode_and_kill_switch(client, analyst):
     assert client.post("/api/system/kill-switch", json={"active": True}, headers=analyst).status_code == 403
 
 
-def test_phase_placeholders_are_honest(client, analyst):
+def test_empty_state_is_honest(client, analyst):
+    # nessuna opportunità né backtest inventati su un database vuoto
     assert client.get("/api/opportunities", headers=analyst).json()["total"] == 0
-    for path in ("/api/backtests",):
-        r = client.post(path, headers=analyst)
-        assert r.status_code == 501
-        assert r.json()["error"]["code"] == "not_implemented"
+    assert client.get("/api/backtests", headers=analyst).json()["total"] == 0
