@@ -34,9 +34,28 @@ def get_mode(db: Session) -> str:
     return v["mode"] if v else get_settings().default_mode
 
 
+def live_availability() -> tuple[bool, str]:
+    """La modalità LIVE_ASSISTED esiste solo se abilitata esplicitamente in configurazione (Fase 8)."""
+    s = get_settings()
+    if not s.live_trading_enabled:
+        return False, "LIVE_TRADING_ENABLED=false (default): la modalità live assistita è spenta."
+    if s.live_broker == "none":
+        return False, "Nessun broker live configurato (LIVE_BROKER=none)."
+    return True, f"Broker live: {s.live_broker}. Ogni ordine richiede conferma umana."
+
+
+def available_modes() -> list[str]:
+    return ["RESEARCH", "PAPER"] + (["LIVE_ASSISTED"] if live_availability()[0] else [])
+
+
 def set_mode(db: Session, mode: str, actor: str) -> str:
-    if mode == TradingMode.LIVE_ASSISTED or mode not in ALLOWED_MODES:
-        raise AppError("La modalità Live non è disponibile in questa release: solo RESEARCH e PAPER.",
+    if mode == TradingMode.LIVE_ASSISTED:
+        ok, why = live_availability()
+        if not ok:
+            raise AppError(f"La modalità Live non è disponibile: {why} Modalità consentite: RESEARCH e PAPER.",
+                           code="mode_not_allowed")
+    elif mode not in ALLOWED_MODES:
+        raise AppError("Modalità non valida: RESEARCH, PAPER (LIVE_ASSISTED solo se abilitata).",
                        code="mode_not_allowed")
     old = get_mode(db)
     _set(db, MODE_KEY, {"mode": mode}, actor)
@@ -62,6 +81,17 @@ def assert_can_trade_paper(db: Session) -> None:
     if get_mode(db) != TradingMode.PAPER:
         raise SafetyBlock("Ordini simulati consentiti solo in Paper Trading Mode (modalità attuale: Research).",
                           code="wrong_mode")
+
+
+def assert_can_trade_live(db: Session) -> None:
+    ok, why = live_availability()
+    if not ok:
+        raise SafetyBlock(why, code="live_disabled")
+    ks = kill_switch_state(db)
+    if ks["active"]:
+        raise SafetyBlock(f"Kill switch attivo: {ks.get('reason') or 'nessun motivo indicato'}", code="kill_switch")
+    if get_mode(db) != TradingMode.LIVE_ASSISTED:
+        raise SafetyBlock("Ordini live consentiti solo in modalità LIVE_ASSISTED.", code="wrong_mode")
 
 
 def quote_age(quote_time: datetime, now: datetime | None = None) -> timedelta:

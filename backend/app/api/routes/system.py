@@ -41,8 +41,8 @@ def status(db: Session = Depends(get_db), adapter: MarketDataAdapter = Depends(m
         dbs = "error"
     s = get_settings()
     return SystemStatus(
-        app=s.app_name, mode=safety.get_mode(db), available_modes=["RESEARCH", "PAPER"],
-        live_trading_enabled=False, kill_switch=safety.kill_switch_state(db), market_data=asdict(adapter.info()),
+        app=s.app_name, mode=safety.get_mode(db), available_modes=safety.available_modes(),
+        live_trading_enabled=safety.live_availability()[0], kill_switch=safety.kill_switch_state(db), market_data=asdict(adapter.info()),
         database=dbs, redis=_redis_status(), max_quote_age_minutes=s.max_quote_age_minutes,
     )
 

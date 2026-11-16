@@ -6,6 +6,7 @@ import { useApi } from "@/lib/hooks";
 import { when } from "@/lib/format";
 import { Badge, Button, Card, CardHeader, ErrorNote, Input, Label, Table } from "@/components/ui/primitives";
 import { useSession } from "@/components/shell";
+import { LiveStatusCard } from "@/components/live";
 
 type AuditRow = { id: number; created_at: string; actor: string; action: string; entity: string | null; entity_id: string | null; hash: string };
 
@@ -32,15 +33,17 @@ export default function SettingsPage() {
           <CardHeader title="Modalità operativa" />
           <div className="space-y-3 p-4 text-sm">
             <div className="flex gap-2">
-              {(["RESEARCH", "PAPER"] as const).map((m) => (
+              {(["RESEARCH", "PAPER", "LIVE_ASSISTED"] as const).filter((m) => status?.available_modes.includes(m)).map((m) => (
                 <Button key={m} variant={status?.mode === m ? "primary" : "outline"} disabled={!isAdmin}
                   onClick={() => act(() => api("/api/system/mode", { method: "PUT", body: JSON.stringify({ mode: m }) }))}>
-                  {m === "RESEARCH" ? "Research" : "Paper Trading"}
+                  {m === "RESEARCH" ? "Research" : m === "PAPER" ? "Paper Trading" : "Live assistito"}
                 </Button>
               ))}
             </div>
             <p className="text-xs text-muted">Research: sola analisi, nessun ordine. Paper: esecuzione simulata su portafoglio virtuale.</p>
-            <p className="text-xs text-muted">Live Assisted: <span className="text-fg">non disponibile in questa release</span>. Richiederà validazione prospettica e conferma umana per ogni ordine.</p>
+            <p className="text-xs text-muted">Live assistito: {status?.live_trading_enabled
+              ? <span className="text-warn">configurato sul server; ogni ordine richiede la conferma umana con codice monouso.</span>
+              : <span className="text-fg">spento (default). Si attiva solo da configurazione del server.</span>}</p>
           </div>
         </Card>
         <Card>
@@ -74,6 +77,7 @@ export default function SettingsPage() {
           </div>
         </Card>
       </div>
+      <LiveStatusCard isAdmin={isAdmin} />
 
       {canAudit && (
         <Card>

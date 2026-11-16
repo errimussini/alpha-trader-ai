@@ -6,7 +6,7 @@ import httpx
 import pytest
 from sqlalchemy import select
 
-from app.adapters.market_data.base import DataProviderError, MarketDataAdapter, Quote
+from app.adapters.market_data.base import DataProviderError, MarketDataAdapter, ProviderInfo, Quote
 from app.core.config import get_settings
 from app.models.entities import (
     Alert, AuditLog, EquitySnapshot, Instrument, Order, Position, RiskAssessment, TradePlan, User,
@@ -25,8 +25,8 @@ class FakeMarket(MarketDataAdapter):
     def __init__(self, price="100", volume=None, stale=False):
         self.price, self.volume, self.stale, self.fail = D(price), volume, stale, False
 
-    def info(self):  # pragma: no cover
-        raise NotImplementedError
+    def info(self):
+        return ProviderInfo("fake (test)", False, ["TEST"], ["quote"], "quotazioni controllate dal test", True)
 
     def get_instrument(self, symbol, exchange):  # pragma: no cover
         raise NotImplementedError

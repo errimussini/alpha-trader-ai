@@ -2,7 +2,7 @@
 
 Piattaforma di analisi e supporto al trading per azioni ed ETF liquidi di USA ed Europa.
 Modalità disponibili: **Research** (sola analisi) e **Paper Trading** (esecuzione simulata).
-La modalità Live non esiste in questa release.
+La modalità Live assistito è solo architettura: spenta di default, nessun broker reale collegato, ogni ordine richiede conferma umana.
 
 > Strumento di analisi e simulazione. Nessun rendimento è garantito. I risultati passati o
 > simulati non predicono quelli futuri. Le notifiche non equivalgono a ordini eseguiti.
@@ -18,9 +18,9 @@ La modalità Live non esiste in questa release.
 | 5 — Backtest | Simulatore point-in-time con costi e gap, train/validation/test, walk-forward, bootstrap, stress test, calibrazione OOS, Strategy Lab | **completata** |
 | 6 — Paper Monitoring | Ordini LIMIT aperti e fill parziali, stop/TP/trailing simulati, alert tipizzati con deduplica e webhook, riconciliazione, equity giornaliera | **completata** |
 | 7 — Validazione | Esiti prospettici dei piani, deriva rispetto al backtest con sospensione delle probabilità, benchmark, affidabilità di dati e segnali | **completata** |
-| 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
+| 8 — Live assistito | Interfaccia broker, ticket con codice monouso e doppio controllo, broker di collaudo; spento di default | **completata** (solo architettura) |
 
-Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md) · [Fase 6](docs/fase-6-paper-monitoring.md) · [Fase 7](docs/fase-7-validation.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md) · [Fase 6](docs/fase-6-paper-monitoring.md) · [Fase 7](docs/fase-7-validation.md) · [Fase 8](docs/fase-8-live-assisted.md).
 
 ## Avvio rapido (Docker)
 

@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     default_mode: Literal["RESEARCH", "PAPER"] = "RESEARCH"
     live_trading_enabled: bool = False  # bloccato a livello di codice, vedi services/safety.py
 
+    # --- Live assistito (Fase 8): SOLO architettura, spento di default ---
+    # Per attivarlo servono LIVE_TRADING_ENABLED=true, un LIVE_BROKER diverso da "none" e un admin che passi
+    # alla modalità LIVE_ASSISTED. Ogni ordine richiede la conferma umana con codice monouso: nessun ordine
+    # live parte mai in automatico (worker, monitoraggio, comitato e assistente non possono inviarne).
+    # "dry_run" è un broker di collaudo: registra il ticket e simula l'accettazione, nessun ordine esce.
+    live_broker: Literal["none", "dry_run"] = "none"
+    live_confirmation_ttl_seconds: int = 120
+    live_max_order_notional_base: Decimal = Decimal("2000")
+    live_max_orders_per_day: int = 5
+    live_max_price_drift_bps: Decimal = Decimal("50")  # scostamento massimo tra ticket e conferma
+    live_require_second_approver: bool = False  # principio dei quattro occhi
+    live_dry_run_equity: Decimal = Decimal("10000")  # capitale fittizio del broker di collaudo
+
     # --- Dati di mercato ---
     # yahoo = gratuito non ufficiale (default); eodhd = professionale a pagamento; csv = file utente; demo = sintetico
     market_data_provider: Literal["yahoo", "eodhd", "csv", "demo"] = "yahoo"
