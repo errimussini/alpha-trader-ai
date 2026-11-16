@@ -365,6 +365,26 @@ class TradePlan(Base):
     valid_until: Mapped[datetime] = _ts()
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = _ts(default=utcnow)
+    # Fase 3
+    portfolio_id: Mapped[int | None] = mapped_column(ForeignKey("portfolios.id", ondelete="CASCADE"), index=True)
+    risk_assessment_id: Mapped[int | None] = mapped_column(ForeignKey("risk_assessments.id"))
+    setup: Mapped[str | None] = mapped_column(String(24))
+    score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    risk_level: Mapped[str | None] = mapped_column(String(8))
+    market_regime: Mapped[str | None] = mapped_column(String(32))
+    status_reason: Mapped[str | None] = mapped_column(Text)
+    entry_conditions: Mapped[list] = mapped_column(JSON, default=list)
+    avoid_conditions: Mapped[list] = mapped_column(JSON, default=list)
+    early_exit_conditions: Mapped[list] = mapped_column(JSON, default=list)
+    stop_rationale: Mapped[dict] = mapped_column(JSON, default=dict)
+    scenarios: Mapped[list] = mapped_column(JSON, default=list)
+    correlations: Mapped[dict] = mapped_column(JSON, default=dict)
+    gross_return_tp1_pct: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    net_return_tp1_pct: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    expected_value_base: Mapped[Decimal | None] = mapped_column(MONEY)  # NULL finché il modello non è validato
+    currency: Mapped[str | None] = mapped_column(String(3))
+    fx_rate: Mapped[Decimal | None] = mapped_column(Numeric(20, 10))
+    committee: Mapped[dict] = mapped_column(JSON, default=dict)  # Fase 4: valutazioni degli agenti
     instrument: Mapped[Instrument] = relationship()
 
 

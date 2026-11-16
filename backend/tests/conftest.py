@@ -36,7 +36,7 @@ def _schema():
 @pytest.fixture(autouse=True)
 def _clean():
     yield
-    tables = ", ".join(t.name for t in reversed(Base.metadata.sorted_tables))
+    tables = ", ".join(sorted(Base.metadata.tables))
     with engine.begin() as c:
         c.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
 

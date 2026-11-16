@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Play, RefreshCw } from "lucide-react";
-import { api, FACTOR_LABELS, REGIME_LABELS, type Page, type RankItem, type Ranking, type ScanRun } from "@/lib/api";
+import Link from "next/link";
+import { api, FACTOR_LABELS, REGIME_LABELS, type Page, type RankItem, type Ranking, type ScanRun, type TradePlan } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { cn, num, when } from "@/lib/format";
 import { Badge, Button, Card, CardHeader, DemoBadge, Empty, ErrorNote, Input } from "@/components/ui/primitives";
@@ -29,6 +30,7 @@ export default function RadarPage() {
   const scans = useApi<Page<ScanRun>>("/api/scans?page_size=1", 5000);
   const uni = useApi<Page<{ id: number }>>("/api/universe?page_size=1");
   const [sel, setSel] = useState<RankItem | null>(null);
+  const plans = useApi<Page<TradePlan>>("/api/opportunities?page_size=20");
   const [err, setErr] = useState<unknown>(null);
   const [tickers, setTickers] = useState("");
   const current = scans.data?.items[0];
@@ -38,7 +40,7 @@ export default function RadarPage() {
 
   async function act(fn: () => Promise<unknown>) {
     setErr(null);
-    try { await fn(); scans.reload(); uni.reload(); rk.reload(); } catch (e) { setErr(e); }
+    try { await fn(); scans.reload(); uni.reload(); rk.reload(); plans.reload(); } catch (e) { setErr(e); }
   }
 
   return (
@@ -47,8 +49,8 @@ export default function RadarPage() {
         <div>
           <h1 className="text-lg font-semibold">Opportunity Radar</h1>
           <p className="text-xs text-muted">
-            Classifica dei candidati per punteggio composito. Il punteggio ordina i titoli: non è una raccomandazione,
-            né una probabilità di successo. Ingressi, stop e target arrivano con il Trade Planner (Fase 3).
+            Classifica dei candidati per punteggio composito e piani operativi. Il punteggio ordina i titoli: non è una
+            raccomandazione né una probabilità di successo.
           </p>
         </div>
         {canWrite && (
@@ -101,6 +103,40 @@ export default function RadarPage() {
         </div>
       )}
 
+      {scan && (
+        <Card>
+          <CardHeader title="Piani operativi" subtitle="Generati dal Trade Planner per i migliori candidati con un setup. READY = prezzo verificato nell'intervallo di ingresso e rischio approvato."
+            right={canWrite ? <Button variant="outline" onClick={() => act(() => api("/api/trade-plans", { method: "POST", body: JSON.stringify({ top_n: 10 }) }))}>Rigenera piani</Button> : null} />
+          {plans.data?.items.length === 0 ? <Empty title="Nessun piano attivo" body="Nessun candidato ha un setup con stop e target validi, oppure i piani sono scaduti." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
+                  {["Stato", "Titolo", "Setup", "Ingresso", "Stop", "TP1 / TP2", "Qtà", "Importo", "Perdita a stop", "R/R netto", "Rend. netto TP1", ""].map((h) => <th key={h} className="whitespace-nowrap px-4 py-2 font-medium">{h}</th>)}
+                </tr></thead>
+                <tbody className="divide-y divide-line">
+                  {plans.data?.items.map((p) => (
+                    <tr key={p.id} className="hover:bg-raised/50">
+                      <td className="px-4 py-2"><Badge tone={p.status === "READY" ? "up" : "warn"}>{p.status}</Badge></td>
+                      <td className="px-4 py-2"><Link href={`/trade/${p.id}`} className="font-medium text-accent hover:underline">{p.ticker}</Link><p className="text-[11px] text-muted">{p.name}</p></td>
+                      <td className="px-4 py-2 text-xs">{p.setup ? SETUPS[p.setup] : "—"}</td>
+                      <td className="num px-4 py-2">{num(p.entry_price)}</td>
+                      <td className="num px-4 py-2 text-down">{num(p.stop_loss)}</td>
+                      <td className="num px-4 py-2 text-up">{num(p.take_profit_1)} / {num(p.take_profit_2)}</td>
+                      <td className="num px-4 py-2">{num(p.quantity, 0)}</td>
+                      <td className="num px-4 py-2">{num(p.notional_base)} €</td>
+                      <td className="num px-4 py-2">{num(p.est_loss_at_stop_base)} €</td>
+                      <td className="num px-4 py-2">{num(p.reward_risk_net)}</td>
+                      <td className="num px-4 py-2">{p.net_return_tp1_pct ? `${num(p.net_return_tp1_pct)}%` : "—"}</td>
+                      <td className="px-4 py-2">{p.is_demo && <DemoBadge />}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
       <Card>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3 text-xs">
           {([
@@ -140,7 +176,7 @@ export default function RadarPage() {
                     <td className="px-4 py-2 text-xs">{it.setup ? SETUPS[it.setup] : <span className="text-muted">nessuno</span>}</td>
                     <td className="px-4 py-2 text-xs">{it.horizon ?? "—"}</td>
                     <td className="px-4 py-2 text-xs">{it.risk_level ? RISK[it.risk_level] : "—"}</td>
-                    <td className="px-4 py-2 text-[11px] text-muted" title="Calcolato dal Trade Planner (Fase 3)">n/d</td>
+                    <td className="px-4 py-2 text-[11px] text-muted" title="Vedi i piani operativi">{plans.data?.items.find((p) => p.instrument_id === it.instrument_id)?.net_return_tp1_pct ? `${num(plans.data!.items.find((p) => p.instrument_id === it.instrument_id)!.net_return_tp1_pct)}%` : "n/d"}</td>
                     <td className="px-4 py-2 text-[11px] text-muted" title="Disponibile solo con modello calibrato out-of-sample">non calibrata</td>
                     <td className="px-4 py-2">{it.is_demo && <DemoBadge />}</td>
                   </tr>

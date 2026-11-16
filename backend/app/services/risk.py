@@ -60,6 +60,7 @@ class SizingRequest:
     take_profit_2: Decimal | None = None
     tp1_close_fraction: Decimal = Decimal("0.5")
     gap_stress_pct: Decimal = Decimal("3")  # scenario: uscita X% sotto lo stop
+    max_quantity: Decimal | None = None      # tetto esterno (es. riduzione del Portfolio Manager)
 
 
 @dataclass
@@ -155,6 +156,9 @@ def compute_position_size(req: SizingRequest, ctx: PortfolioContext, limits: Ris
         qty -= req.lot_size
         binding = "max_aggregate_risk"
     qty = max(qty, Decimal("0"))
+    if req.max_quantity is not None and qty > req.max_quantity:
+        qty = _floor_lot(req.max_quantity, req.lot_size)
+        binding = "portfolio_manager"
 
     if qty == 0:
         blocking.append(f"Quantità nulla dopo i vincoli (vincolo determinante: {binding}).")
