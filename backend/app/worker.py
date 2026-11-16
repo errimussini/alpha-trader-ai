@@ -7,7 +7,7 @@
   idempotenza "scheduled:AAAA-MM-GG" (mai due scansioni programmate nello stesso giorno).
 - Recupero: una scansione RUNNING senza heartbeat da oltre 30 minuti viene marcata FAILED.
 - Job generici (tabella jobs, es. comitato AI) presi con lo stesso meccanismo SKIP LOCKED.
-- Hook per i job periodici tramite la lista PERIODIC_JOBS.
+- Job periodici (PERIODIC_JOBS): scadenza piani e monitoraggio paper trading (Fase 6) con notifiche webhook.
 """
 from __future__ import annotations
 
@@ -23,10 +23,12 @@ from app.adapters.market_data.registry import get_market_data_adapter
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.ai.llm import get_llm
-from app.models.entities import Alert, ScanRun, TradePlan
+from app.models.entities import Alert, Portfolio, ScanRun, TradePlan
 from app.services import audit, jobs
 from app.backtest import runner as _backtest  # noqa: F401 - registra l'handler del job
 from app.services import committee as _committee  # registra anche l'handler del job
+from app.services.alerts import notify_pending
+from app.services.monitor import run_monitor
 from app.services.planner import expire_plans, generate_for_scan, plans_for_user_portfolios
 from app.services.scanner import enqueue_scan, run_scan
 
@@ -40,8 +42,32 @@ def _expire_job() -> None:
             log.info("%s piani scaduti", n)
 
 
+def _monitor_job() -> None:
+    """Fase 6: ordini aperti, stop/target, piani attivi, rischio, riconciliazione, snapshot dell'equity."""
+    adapter = get_market_data_adapter()
+    with SessionLocal() as db:
+        ids = [pf.id for pf, _ in plans_for_user_portfolios(db)]
+    for pid in ids:
+        with SessionLocal() as db:
+            try:
+                rep = run_monitor(db, adapter, db.get(Portfolio, pid), actor="worker")
+                db.commit()
+                if rep.exits or rep.orders_filled or rep.alerts:
+                    log.info("monitor portafoglio #%s: %s uscite, %s ordini eseguiti, %s alert",
+                             pid, len(rep.exits), len(rep.orders_filled), rep.alerts)
+            except Exception:  # noqa: BLE001 - un portafoglio non blocca gli altri
+                db.rollback()
+                log.exception("monitor portafoglio #%s fallito", pid)
+    with SessionLocal() as db:
+        n = notify_pending(db)
+        db.commit()
+        if n:
+            log.info("%s alert notificati via webhook", n)
+
+
 PERIODIC_JOBS: list[tuple[str, int, Callable[[], None]]] = [  # (nome, intervallo s, funzione)
     ("expire_plans", 600, _expire_job),
+    ("paper_monitor", get_settings().monitor_interval_seconds, _monitor_job),
 ]
 _stop = False
 

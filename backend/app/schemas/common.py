@@ -189,6 +189,38 @@ class PositionOut(BaseModel):
     stale: bool
     is_demo: bool
     opened_at: datetime
+    take_profit_2: Decimal | None = None
+    trade_plan_id: int | None = None
+    tp1_done: bool = False
+    trailing_active: bool = False
+    trailing_distance: Decimal | None = None
+    high_water: Decimal | None = None
+    last_checked_at: datetime | None = None
+
+
+class PositionLevelsIn(BaseModel):
+    """Modifica dei livelli. Alzare lo stop è sempre ammesso; abbassarlo (più perdita ammessa) richiede
+    authorize_wider_stop=true, una motivazione e il rispetto del budget di rischio per operazione."""
+    stop_loss: Decimal | None = Field(default=None, gt=0)
+    take_profit_1: Decimal | None = Field(default=None, gt=0)
+    take_profit_2: Decimal | None = Field(default=None, gt=0)
+    authorize_wider_stop: bool = False
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class EquitySnapshotOut(ORM):
+    snap_date: date
+    equity: Decimal
+    cash: Decimal
+    market_value: Decimal
+    realized_pnl: Decimal
+    unrealized_pnl: Decimal
+    drawdown_pct: Decimal
+    aggregate_risk_pct: Decimal
+    open_positions: int
+    stale: bool
+    is_demo: bool
+    taken_at: datetime
 
 
 class PortfolioOut(BaseModel):
@@ -241,6 +273,13 @@ class OrderOut(ORM):
     broker: str
     is_demo: bool
     created_at: datetime
+    stop_loss: Decimal | None = None
+    take_profit_1: Decimal | None = None
+    valid_until: datetime | None = None
+    purpose: str = "MANUAL"
+    trade_plan_id: int | None = None
+    last_checked_at: datetime | None = None
+    ticker: str | None = None
 
 
 class PaperOrderOut(BaseModel):

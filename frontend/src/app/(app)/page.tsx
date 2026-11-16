@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import type { Alert, MarketOverview, Page, Portfolio, Position, Ranking } from "@/lib/api";
+import { ALERT_KINDS, type Alert, type MarketOverview, type Page, type Portfolio, type Position, type Ranking } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { cn, money, num, pct, tone, when } from "@/lib/format";
 import { Badge, Card, CardHeader, DemoBadge, Empty, ErrorNote, Table } from "@/components/ui/primitives";
@@ -37,7 +37,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
         <Kpi label="Equity" value={money(p?.equity, ccy)} sub={`Capitale iniziale ${money(p?.initial_capital, ccy)}`} />
         <Kpi label="Liquidità" value={money(p?.cash, ccy)} />
-        <Kpi label="Rend. giornaliero" value="n/d" sub="Richiede storico equity (Fase 6)" />
+        <Kpi label="Rend. giornaliero" value={p?.daily_return_pct != null ? pct(p.daily_return_pct) : "n/d"}
+          className={tone(p?.daily_return_pct)} sub={p?.daily_return_pct == null ? "Serve lo snapshot di un giorno precedente" : "vs chiusura snapshot precedente"} />
         <Kpi label="Rend. cumulato" value={pct(p?.cumulative_return_pct)} className={tone(p?.cumulative_return_pct)} />
         <Kpi label="P&L realizzato" value={money(p?.realized_pnl, ccy)} className={tone(p?.realized_pnl)} />
         <Kpi label="P&L non realizzato" value={money(p?.unrealized_pnl, ccy)} className={tone(p?.unrealized_pnl)} />
@@ -79,14 +80,15 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader title="Alert attivi" />
+          <CardHeader title="Alert attivi" subtitle="Le notifiche non sono ordini eseguiti"
+            right={<Link href="/portfolio#alert" className="text-xs text-accent hover:underline">Tutti →</Link>} />
           {al.data && al.data.items.length === 0 ? <Empty title="Nessun alert attivo" /> : (
             <ul className="divide-y divide-line">
               {al.data?.items.map((a) => (
                 <li key={a.id} className="px-4 py-2.5 text-xs">
                   <div className="flex items-center gap-2">
                     <Badge tone={a.severity === "CRITICAL" ? "down" : a.severity === "WARNING" ? "warn" : "neutral"}>{a.severity}</Badge>
-                    <span className="text-muted">{a.kind}</span>
+                    <span className="text-muted">{ALERT_KINDS[a.kind] ?? a.kind}</span>
                     <span className="ml-auto text-muted">{when(a.created_at)}</span>
                   </div>
                   <p className="mt-1">{a.message}</p>
@@ -149,7 +151,7 @@ export default function Dashboard() {
               ))}
             </ul>
           )}
-          <p className="border-t border-line px-4 py-2 text-[11px] text-muted">Punteggio di ranking, non raccomandazione: i piani operativi arrivano in Fase 3.</p>
+          <p className="border-t border-line px-4 py-2 text-[11px] text-muted">Punteggio di ranking, non raccomandazione: il piano operativo è nel dettaglio dell'opportunità.</p>
         </Card>
       </div>
     </div>

@@ -16,11 +16,11 @@ La modalità Live non esiste in questa release.
 | 3 — Trade Planner | Ingressi, stop tecnici, target, size, correlazioni, stati READY/WAIT | **completata** |
 | 4 — AI Investment Committee | 7 agenti Claude con output JSON validati, veto del Risk Manager, AI Assistant con strumenti tipizzati | **completata** |
 | 5 — Backtest | Simulatore point-in-time con costi e gap, train/validation/test, walk-forward, bootstrap, stress test, calibrazione OOS, Strategy Lab | **completata** |
-| 6 — Paper Trading | Monitoraggio posizioni, ordini aperti, notifiche, storico equity | da fare |
+| 6 — Paper Monitoring | Ordini LIMIT aperti e fill parziali, stop/TP/trailing simulati, alert tipizzati con deduplica e webhook, riconciliazione, equity giornaliera | **completata** |
 | 7 — Validazione | Test prospettici e confronto con benchmark | da fare |
 | 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
 
-Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md) · [Fase 6](docs/fase-6-paper-monitoring.md).
 
 ## Avvio rapido (Docker)
 
