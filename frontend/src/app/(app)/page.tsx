@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import type { Alert, MarketOverview, Page, Portfolio, Position } from "@/lib/api";
+import type { Alert, MarketOverview, Page, Portfolio, Position, Ranking } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
 import { cn, money, num, pct, tone, when } from "@/lib/format";
 import { Badge, Card, CardHeader, DemoBadge, Empty, ErrorNote, Table } from "@/components/ui/primitives";
@@ -20,7 +20,7 @@ export default function Dashboard() {
   const pos = useApi<Page<Position>>("/api/positions?page_size=10", 30_000);
   const ov = useApi<MarketOverview>("/api/market/overview", 60_000);
   const al = useApi<Page<Alert>>("/api/alerts?page_size=8", 30_000);
-  const opp = useApi<Page<unknown>>("/api/opportunities?page_size=5");
+  const rk = useApi<Ranking>("/api/rankings/latest?page_size=5");
   const p = pf.data;
   const ccy = p?.base_currency ?? "EUR";
 
@@ -122,17 +122,34 @@ export default function Dashboard() {
           </Table>
           {ov.data && (
             <p className="border-t border-line px-4 py-2 text-[11px] text-muted">
-              Regime di mercato: <span className="text-fg">non disponibile</span> — {ov.data.regime.reason}
+              Regime di mercato: {ov.data.regime.status === "OK"
+                ? <span className="text-fg">{String((ov.data.regime as Record<string, unknown>).regime)} (dati al {String((ov.data.regime as Record<string, unknown>).as_of)})</span>
+                : <><span className="text-fg">non disponibile</span> — {ov.data.regime.reason}</>}
             </p>
           )}
         </Card>
 
         <Card>
-          <CardHeader title="Migliori opportunità" />
-          {opp.data && opp.data.total === 0 && (
-            <Empty title="Nessuna opportunità"
-              body="Lo scanner e il ranking arrivano in Fase 2. Finché non esistono segnali validati, questa lista resta vuota: nessuna opportunità viene inventata." />
+          <CardHeader title="Migliori candidati" subtitle={rk.data?.scan ? `Scansione #${rk.data.scan.id} · dati al ${rk.data.scan.as_of}` : undefined}
+            right={<Link href="/radar" className="text-xs text-accent hover:underline">Radar →</Link>} />
+          {rk.data && rk.data.items.length === 0 ? (
+            <Empty title="Nessun candidato" body="Avvia una scansione dall'Opportunity Radar. Nessuna opportunità viene inventata." />
+          ) : (
+            <ul className="divide-y divide-line">
+              {rk.data?.items.map((it, i) => (
+                <li key={it.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className="num w-4 text-xs text-muted">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{it.ticker}</p>
+                    <p className="truncate text-[11px] text-muted">{it.setup ?? "nessun setup"} · {it.horizon ?? "—"}</p>
+                  </div>
+                  <span className="num text-sm font-semibold">{num(it.score, 0)}</span>
+                  {it.is_demo && <DemoBadge />}
+                </li>
+              ))}
+            </ul>
           )}
+          <p className="border-t border-line px-4 py-2 text-[11px] text-muted">Punteggio di ranking, non raccomandazione: i piani operativi arrivano in Fase 3.</p>
         </Card>
       </div>
     </div>

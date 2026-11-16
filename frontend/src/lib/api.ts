@@ -118,3 +118,38 @@ export type Order = {
   filled_quantity: string; limit_price: string | null; status: string; reject_reason: string | null; mode: string;
   is_demo: boolean; created_at: string;
 };
+
+export type ScanRun = {
+  id: number; status: "QUEUED" | "RUNNING" | "DONE" | "FAILED"; trigger: string; requested_by: string;
+  as_of: string | null; model_version: string | null; data_source: string | null;
+  regime: { regime: string; score: number; notes: string[]; benchmarks: { ticker: string; trend: string; as_of: string; vol20: number; vol20_percentile_1y: number; source: string }[]; vix: { value: number; as_of: string; source: string } | null; rates: { us10y: number; change_3m: number; as_of: string } | null } | null;
+  stats: { universe?: number; analysed?: number; eligible?: number; scored?: number; excluded?: number; errors?: number; top?: string[] };
+  errors: { ticker?: string; stage: string; error: string }[]; progress: number; total: number;
+  created_at: string; started_at: string | null; finished_at: string | null;
+};
+
+export type RankItem = {
+  id: number; scan_run_id: number; instrument_id: number; ticker: string; name: string | null; isin: string | null;
+  exchange: string; sector: string | null; instrument_type: string; currency: string; price: string | null;
+  price_date: string | null; price_source: string; score: string | null;
+  factor_scores: Record<string, number | null>; coverage: string | null; setup: string | null;
+  strategy_style: string | null; horizon: string | null; risk_level: string | null; eligible: boolean;
+  decision: string; market_regime: string; is_demo: boolean; analysis_time: string;
+  potential_return_gross: null; potential_return_net: null; reward_risk: null; calibrated_confidence: null;
+  rationale: { for: string[]; against: string[]; could_be_wrong_if: string[] };
+  exclusions: string[]; flags: string[]; details?: { features: Record<string, number | null> };
+};
+
+export type Ranking = {
+  scan: ScanRun | null; items: RankItem[]; total: number; page: number; page_size: number;
+  weights: Record<string, number>; model_version: string; facets?: { exchanges: string[]; sectors: string[] };
+};
+
+export const FACTOR_LABELS: Record<string, string> = {
+  trend_momentum: "Trend e momentum", setup: "Qualità del setup", fundamentals: "Fondamentali",
+  macro_sector: "Regime macro e settore", liquidity_vol: "Liquidità e volatilità", catalysts: "Catalizzatori",
+  sentiment: "Sentiment",
+};
+export const REGIME_LABELS: Record<string, string> = {
+  BULL: "Rialzista", BEAR: "Ribassista", SIDEWAYS: "Laterale", HIGH_VOLATILITY: "Alta volatilità", UNKNOWN: "Non determinabile",
+};

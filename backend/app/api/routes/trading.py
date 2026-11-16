@@ -50,11 +50,6 @@ def opportunity(plan_id: int, db: Session = Depends(get_db), _: User = Depends(c
     return p
 
 
-@router.post("/scans", status_code=501)
-def scans(_: User = Depends(require_role(Role.ANALYST))):
-    raise NotYetImplemented("Il Market Scanner e lo Stock Ranking Engine sono previsti in Fase 2.")
-
-
 @router.post("/trade-plans", status_code=501)
 def trade_plans(_: User = Depends(require_role(Role.ANALYST))):
     raise NotYetImplemented("Il Trade Plan Generator è previsto in Fase 3. Il dimensionamento è già disponibile su POST /api/risk/check.")
