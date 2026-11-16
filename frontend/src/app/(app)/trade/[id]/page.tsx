@@ -7,6 +7,7 @@ import { cn, money, num, pct, when } from "@/lib/format";
 import { Badge, Button, Card, CardHeader, DemoBadge, ErrorNote } from "@/components/ui/primitives";
 import { Candles, type PriceLine } from "@/components/candles";
 import { useSession } from "@/components/shell";
+import { CommitteePanel } from "@/components/committee";
 
 const STATUS_TONE = { READY: "up", WAIT: "warn", REJECTED: "down", EXPIRED: "neutral" } as const;
 const STATUS_LABEL = { READY: "Pronto", WAIT: "In attesa", REJECTED: "Respinto", EXPIRED: "Scaduto" };
@@ -159,6 +160,8 @@ export default function TradeDetail({ params }: { params: Promise<{ id: string }
           </div>
         </Card>
       </div>}
+
+      <CommitteePanel planId={p.id} canRequest={user.role !== "viewer"} />
     </div>
   );
 }

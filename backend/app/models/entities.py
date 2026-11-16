@@ -513,3 +513,46 @@ class AuditLog(Base):
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
     prev_hash: Mapped[str | None] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64), unique=True)
+
+
+# ---------------------------------------------------------------- AI e job (Fase 4)
+class AiRun(Base):
+    """Traccia di ogni chiamata a un agente: modello, versione del prompt, dati in ingresso e output validato."""
+    __tablename__ = "ai_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)  # committee_agent / assistant
+    agent: Mapped[str | None] = mapped_column(String(48))
+    trade_plan_id: Mapped[int | None] = mapped_column(ForeignKey("trade_plans.id", ondelete="SET NULL"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    mode: Mapped[str] = mapped_column(String(16))  # ai / deterministic
+    model: Mapped[str | None] = mapped_column(String(64))
+    prompt_version: Mapped[str] = mapped_column(String(48))
+    prompt_hash: Mapped[str | None] = mapped_column(String(64))
+    input_hash: Mapped[str | None] = mapped_column(String(64))
+    inputs: Mapped[dict] = mapped_column(JSON, default=dict)
+    output: Mapped[dict] = mapped_column(JSON, default=dict)
+    validation: Mapped[dict] = mapped_column(JSON, default=dict)
+    usage: Mapped[dict] = mapped_column(JSON, default=dict)
+    request_id: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16))  # OK / FALLBACK / ERROR / REFUSED
+    error: Mapped[str | None] = mapped_column(Text)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = _ts(default=utcnow, index=True)
+
+
+class Job(Base):
+    """Coda generica di lavori in background (comitato AI, backtest...). Presa con FOR UPDATE SKIP LOCKED."""
+    __tablename__ = "jobs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    status: Mapped[str] = mapped_column(String(16), index=True)  # QUEUED / RUNNING / DONE / FAILED
+    idempotency_key: Mapped[str | None] = mapped_column(String(96), unique=True)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    requested_by: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = _ts(default=utcnow)
+    started_at: Mapped[datetime | None] = _ts()
+    heartbeat_at: Mapped[datetime | None] = _ts()
+    finished_at: Mapped[datetime | None] = _ts()

@@ -6,7 +6,8 @@
 - Scheduling: nei giorni feriali, all'orario SCAN_SCHEDULE_UTC, accoda una scansione con chiave di
   idempotenza "scheduled:AAAA-MM-GG" (mai due scansioni programmate nello stesso giorno).
 - Recupero: una scansione RUNNING senza heartbeat da oltre 30 minuti viene marcata FAILED.
-- Hook per i job delle fasi successive (monitoraggio posizioni) tramite la lista PERIODIC_JOBS.
+- Job generici (tabella jobs, es. comitato AI) presi con lo stesso meccanismo SKIP LOCKED.
+- Hook per i job periodici tramite la lista PERIODIC_JOBS.
 """
 from __future__ import annotations
 
@@ -21,8 +22,10 @@ from sqlalchemy import select
 from app.adapters.market_data.registry import get_market_data_adapter
 from app.core.config import get_settings
 from app.core.db import SessionLocal
-from app.models.entities import Alert, ScanRun
-from app.services import audit
+from app.ai.llm import get_llm
+from app.models.entities import Alert, ScanRun, TradePlan
+from app.services import audit, jobs
+from app.services import committee as _committee  # noqa: F401 - registra l'handler del job
 from app.services.planner import expire_plans, generate_for_scan, plans_for_user_portfolios
 from app.services.scanner import enqueue_scan, run_scan
 
@@ -74,6 +77,14 @@ def maybe_schedule(now: datetime) -> None:
             log.info("scansione programmata accodata #%s", sr.id)
 
 
+def run_job() -> bool:
+    with SessionLocal() as db:
+        job = jobs.run_one(db)
+        if job is not None:
+            log.info("job #%s %s: %s", job.id, job.kind, job.status)
+        return job is not None
+
+
 def claim_and_run() -> bool:
     with SessionLocal() as db:
         sr = db.execute(select(ScanRun).where(ScanRun.status == "QUEUED").order_by(ScanRun.id)
@@ -86,10 +97,18 @@ def claim_and_run() -> bool:
             adapter = get_market_data_adapter()
             run_scan(db, adapter, sr)
             log.info("scansione #%s completata: %s", sr.id, sr.stats)
+            top_ai = get_settings().ai_auto_committee_top_n
             for pf, owner in plans_for_user_portfolios(db):
                 plans = generate_for_scan(db, adapter, sr, pf, "worker", get_settings().plan_top_n)
                 db.commit()
                 log.info("portafoglio #%s: %s piani generati", pf.id, len(plans))
+                if top_ai > 0 and get_llm() is not None:
+                    act = sorted((p for p in plans if p.status in ("READY", "WAIT")),
+                                 key=lambda p: (p.status != "READY", -float(p.score or 0)))[:top_ai]
+                    for p in act:
+                        _committee.request_committee(db, p, "worker", owner.id)
+                    db.commit()
+                    log.info("comitato AI accodato per %s piani", len(act))
         except Exception as e:  # noqa: BLE001
             db.rollback()
             sr = db.get(ScanRun, sr.id)
@@ -112,6 +131,9 @@ def main() -> None:
     while not _stop:
         try:
             recover_stale()
+            with SessionLocal() as db:
+                jobs.recover_stale_jobs(db)
+                db.commit()
             maybe_schedule(datetime.now(UTC))
             for name, every, fn in PERIODIC_JOBS:
                 if time.monotonic() - last_run.get(name, 0) >= every:
@@ -120,7 +142,7 @@ def main() -> None:
                         fn()
                     except Exception:  # noqa: BLE001
                         log.exception("job %s fallito", name)
-            if claim_and_run():
+            if claim_and_run() or run_job():
                 continue
         except Exception:  # noqa: BLE001
             log.exception("errore nel ciclo del worker")

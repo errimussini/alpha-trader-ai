@@ -171,3 +171,38 @@ export type TradePlan = {
   currency: string | null; fx_rate: string | null; is_demo: boolean; created_at: string;
   committee: Record<string, unknown>;
 };
+
+// ---------------------------------------------------------------- Fase 4: comitato e assistente
+export type Stance = "FAVOREVOLE" | "NEUTRALE" | "CONTRARIO";
+export type Validation = { unverified_numbers: string[]; unknown_refs: string[] };
+export type AgentOpinion = {
+  agent: string; title: string; mode: "ai" | "deterministic"; run_id: number; stance: Stance; summary: string;
+  points_for: string[]; points_against: string[]; risks: string[]; data_refs: string[]; validation: Validation; error: string | null;
+};
+export type CommitteeDecision = {
+  agent: string; title: string; mode: "ai" | "deterministic"; run_id: number;
+  decision: "BUY" | "WAIT" | "HOLD" | "REDUCE" | "EXIT" | "REJECT"; summary: string; reasons_for: string[];
+  reasons_against: string[]; could_be_wrong_if: string[]; conditions_to_act: string[]; dissent: string[];
+  data_refs: string[]; validation: Validation; error: string | null;
+};
+export type CommitteeResult = {
+  status: "DONE"; version: string; prompt_version: string; mode: "ai" | "mixed" | "deterministic"; model: string | null;
+  completed_at: string; allowed_decisions: string[]; constraints: string[]; inputs_hash: string;
+  agents: AgentOpinion[]; decision: CommitteeDecision; disclaimer: string;
+};
+export type CommitteeState = CommitteeResult | {
+  status: "QUEUED" | "RUNNING" | "FAILED"; job_id?: number; model?: string; error?: string;
+  previous?: CommitteeResult | null; job?: { id: number; status: string; error: string | null } | null;
+};
+export type AiStatus = { enabled: boolean; model: string | null; configured_model: string; effort: string; mode: "ai" | "deterministic" };
+export type ChatSource = { tool: string; input: Record<string, unknown>; output: unknown; error?: string | null };
+export type ChatAnswer = { answer: string; mode: "ai" | "deterministic"; model: string | null; run_id: number; sources: ChatSource[] };
+
+export const DECISION_LABELS: Record<string, string> = {
+  BUY: "Acquistare (simulato)", WAIT: "Attendere", HOLD: "Mantenere", REDUCE: "Ridurre", EXIT: "Uscire", REJECT: "Respingere",
+};
+export const TOOL_LABELS: Record<string, string> = {
+  get_market_regime: "Regime di mercato", list_opportunities: "Opportunità", get_trade_plan: "Piano operativo",
+  explain_selection: "Motivazioni del ranking", check_budget: "Motore di rischio", get_positions: "Posizioni aperte",
+  get_performance: "Performance del portafoglio",
+};

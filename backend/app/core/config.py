@@ -60,6 +60,18 @@ class Settings(BaseSettings):
     scan_max_spread_pct: float = 0.5
     plan_top_n: int = 10  # piani operativi generati automaticamente dopo ogni scansione
 
+    # --- AI (Fase 4): Anthropic Claude API ---
+    # La chiave resta lato server (.env). Senza chiave il comitato e l'assistente funzionano in modalità
+    # deterministica: stesse regole e stessi dati, senza sintesi qualitativa del modello.
+    anthropic_api_key: SecretStr | None = None
+    ai_model: str = "claude-opus-5-5"
+    ai_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
+    ai_max_tokens: int = 16000
+    ai_timeout_seconds: float = 300.0
+    ai_refusal_fallback: bool = True  # fallback lato server in caso di rifiuto per sicurezza
+    ai_auto_committee_top_n: int = 0  # comitato AI automatico sui primi N piani READY/WAIT dopo la scansione
+    ai_assistant_max_steps: int = 8
+
     # --- Profilo operativo / rischio (parametri iniziali, da validare) ---
     base_currency: str = "EUR"
     initial_paper_capital: Decimal = Decimal("10000")
