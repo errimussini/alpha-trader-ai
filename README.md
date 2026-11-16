@@ -17,10 +17,10 @@ La modalità Live non esiste in questa release.
 | 4 — AI Investment Committee | 7 agenti Claude con output JSON validati, veto del Risk Manager, AI Assistant con strumenti tipizzati | **completata** |
 | 5 — Backtest | Simulatore point-in-time con costi e gap, train/validation/test, walk-forward, bootstrap, stress test, calibrazione OOS, Strategy Lab | **completata** |
 | 6 — Paper Monitoring | Ordini LIMIT aperti e fill parziali, stop/TP/trailing simulati, alert tipizzati con deduplica e webhook, riconciliazione, equity giornaliera | **completata** |
-| 7 — Validazione | Test prospettici e confronto con benchmark | da fare |
+| 7 — Validazione | Esiti prospettici dei piani, deriva rispetto al backtest con sospensione delle probabilità, benchmark, affidabilità di dati e segnali | **completata** |
 | 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
 
-Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md) · [Fase 6](docs/fase-6-paper-monitoring.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md) · [Fase 5](docs/fase-5-backtest.md) · [Fase 6](docs/fase-6-paper-monitoring.md) · [Fase 7](docs/fase-7-validation.md).
 
 ## Avvio rapido (Docker)
 

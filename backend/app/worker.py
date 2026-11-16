@@ -29,6 +29,7 @@ from app.backtest import runner as _backtest  # noqa: F401 - registra l'handler 
 from app.services import committee as _committee  # registra anche l'handler del job
 from app.services.alerts import notify_pending
 from app.services.monitor import run_monitor
+from app.validation.service import enqueue_validation  # registra anche l'handler del job
 from app.services.planner import expire_plans, generate_for_scan, plans_for_user_portfolios
 from app.services.scanner import enqueue_scan, run_scan
 
@@ -65,9 +66,19 @@ def _monitor_job() -> None:
             log.info("%s alert notificati via webhook", n)
 
 
+def _validation_job() -> None:
+    """Fase 7: accoda la validazione prospettica (al massimo una ogni 6 ore, chiave idempotente)."""
+    now = datetime.now(UTC)
+    with SessionLocal() as db:
+        if jobs.active_job(db, "validation") is None:
+            enqueue_validation(db, "scheduler", key=f"validation:{now.date().isoformat()}:{now.hour // 6}")
+            db.commit()
+
+
 PERIODIC_JOBS: list[tuple[str, int, Callable[[], None]]] = [  # (nome, intervallo s, funzione)
     ("expire_plans", 600, _expire_job),
     ("paper_monitor", get_settings().monitor_interval_seconds, _monitor_job),
+    ("validation", 3600, _validation_job),
 ]
 _stop = False
 

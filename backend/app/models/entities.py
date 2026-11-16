@@ -614,3 +614,42 @@ class BacktestRun(Base):
     requested_by: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = _ts(default=utcnow)
     finished_at: Mapped[datetime | None] = _ts()
+
+
+# ---------------------------------------------------------------- validazione prospettica (Fase 7)
+class PlanOutcome(Base):
+    """Esito prospettico di un piano: valutato solo con barre successive alla sua creazione (fuori campione).
+
+    Stati: PENDING (in corso), NOT_TRIGGERED (ingresso mai raggiunto entro la validità), INVALIDATED (stop toccato
+    prima dell'ingresso), NOT_EVALUABLE (livelli non validi), WIN (TP1 prima dello stop), LOSS (stop), TIMEOUT (orizzonte scaduto, uscita in chiusura).
+    """
+    __tablename__ = "plan_outcomes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    trade_plan_id: Mapped[int] = mapped_column(ForeignKey("trade_plans.id", ondelete="CASCADE"), unique=True)
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), index=True)
+    model_version: Mapped[str] = mapped_column(String(64))
+    setup: Mapped[str | None] = mapped_column(String(24))
+    score: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    status_at_creation: Mapped[str] = mapped_column(String(10))
+    committee_decision: Mapped[str | None] = mapped_column(String(8))
+    created_for: Mapped[date] = mapped_column(Date)  # data dei dati usati dal piano
+    outcome: Mapped[str] = mapped_column(String(14), default="PENDING", index=True)
+    entry_date: Mapped[date | None] = mapped_column(Date)
+    entry_price: Mapped[Decimal | None] = mapped_column(PRICE)
+    exit_date: Mapped[date | None] = mapped_column(Date)
+    exit_price: Mapped[Decimal | None] = mapped_column(PRICE)
+    r_gross: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    r_net: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    mfe_r: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    mae_r: Mapped[Decimal | None] = mapped_column(Numeric(10, 4))
+    bars_evaluated: Mapped[int] = mapped_column(Integer, default=0)
+    last_bar_date: Mapped[date | None] = mapped_column(Date)
+    data_source: Mapped[str | None] = mapped_column(String(64))
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    engine_version: Mapped[str] = mapped_column(String(32))
+    notes: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = _ts(default=utcnow)
+    updated_at: Mapped[datetime] = _ts(default=utcnow, onupdate=utcnow)
+    resolved_at: Mapped[datetime | None] = _ts()
+    plan: Mapped[TradePlan] = relationship()
+    instrument: Mapped[Instrument] = relationship()

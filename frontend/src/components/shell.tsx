@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import {
-  Activity, Bot, Briefcase, FlaskConical, LayoutDashboard, LineChart, LogOut, Power, Radar, Settings,
+  Activity, Bot, Briefcase, FlaskConical, LayoutDashboard, LineChart, LogOut, Power, Radar, Settings, ShieldCheck,
 } from "lucide-react";
 import { api, getToken, setToken, type SystemStatus, type User } from "@/lib/api";
 import { useApi } from "@/lib/hooks";
@@ -16,6 +16,7 @@ const NAV: { href: string; label: string; icon: typeof Activity; phase?: number 
   { href: "/radar", label: "Opportunity Radar", icon: Radar },
   { href: "/portfolio", label: "Portfolio Control", icon: Briefcase },
   { href: "/lab", label: "Strategy Lab", icon: FlaskConical },
+  { href: "/validation", label: "Validazione", icon: ShieldCheck },
   { href: "/assistant", label: "AI Assistant", icon: Bot },
   { href: "/settings", label: "Sistema", icon: Settings },
 ];
