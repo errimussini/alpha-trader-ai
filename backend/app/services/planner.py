@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from app.adapters.market_data.base import MarketDataAdapter
 from app.ai.committee import run_committee
 from app.backtest.runner import latest_calibration
+from app.validation.service import record_plan, validation_gate
 from app.analytics.scoring import MODEL_VERSION
 from app.analytics.planner import PLANNER_VERSION, compute_levels, return_correlation
 from app.core.config import get_settings
@@ -175,6 +176,11 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
     # Probabilità ed EV SOLO da una calibrazione walk-forward fuori campione validata (Fase 5)
     prob, ev_base, calib = None, None, {}
     cal = latest_calibration(db)
+    gate = validation_gate(db)  # Fase 7: peggioramento prospettico significativo -> niente probabilità né EV
+    if gate is not None:
+        calib = {"suspended": True, "reason": gate["message"], "validation_status": gate["status"],
+                 "model_evaluation_id": gate["model_evaluation_id"]}
+        cal = None
     if cal is not None and res.quantity > 0:
         ev_row, c = cal
         blk = c["by_setup"].get(signal.setup) if c["by_setup"].get(signal.setup, {}).get("validated") else c["overall"]
@@ -205,6 +211,7 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
         "tp1": lv.tp1, "tp2": lv.tp2, "qty": str(res.quantity), "model_version": plan.model_version})
     # comitato deterministico immediato (gratuito); quello AI si richiede a parte o via AI_AUTO_COMMITTEE_TOP_N
     run_committee(db, plan, None, actor)
+    record_plan(db, plan)  # Fase 7: tracciamento prospettico dell'esito
     return plan
 
 

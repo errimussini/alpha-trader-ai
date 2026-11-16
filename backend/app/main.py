@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
-from app.api.routes import ai, auth, backtests, market, portfolio, scanner, system, trading
+from app.api.routes import ai, auth, backtests, market, portfolio, scanner, system, trading, validation
 from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.core.errors import install_error_handlers
@@ -43,7 +43,8 @@ def create_app() -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origins=s.cors_origins, allow_credentials=True,
                        allow_methods=["*"], allow_headers=["*"])
     install_error_handlers(app)
-    for r in (auth.router, system.router, market.router, scanner.router, trading.router, portfolio.router, ai.router, backtests.router):
+    for r in (auth.router, system.router, market.router, scanner.router, trading.router, portfolio.router, ai.router,
+              backtests.router, validation.router):
         app.include_router(r)
     return app
 
