@@ -19,6 +19,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.adapters.market_data.base import MarketDataAdapter
+from app.ai.committee import run_committee
 from app.analytics.scoring import MODEL_VERSION
 from app.analytics.planner import PLANNER_VERSION, compute_levels, return_correlation
 from app.core.config import get_settings
@@ -68,6 +69,7 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
                          status="REJECTED", status_reason=lv.reason, invalidation_conditions=[])
         db.add(plan)
         db.flush()
+        run_committee(db, plan, None, actor)
         return plan
 
     # cambio
@@ -86,6 +88,7 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
                              invalidation_conditions=lv.invalidation)
             db.add(plan)
             db.flush()
+            run_committee(db, plan, None, actor)
             return plan
         fx = fxq.price
 
@@ -186,6 +189,8 @@ def generate_plan(db: Session, adapter: MarketDataAdapter, signal: TradingSignal
     audit.record(db, actor=actor, action="plan.generated", entity="trade_plan", entity_id=plan.id, payload={
         "signal_id": signal.id, "status": status, "reason": reason, "entry": lv.entry, "stop": lv.stop,
         "tp1": lv.tp1, "tp2": lv.tp2, "qty": str(res.quantity), "model_version": plan.model_version})
+    # comitato deterministico immediato (gratuito); quello AI si richiede a parte o via AI_AUTO_COMMITTEE_TOP_N
+    run_committee(db, plan, None, actor)
     return plan
 
 

@@ -21,6 +21,13 @@ function ScoreBar({ v }: { v: number | null | undefined }) {
   );
 }
 
+function committeeDecision(c: Record<string, unknown>): string | null {
+  const done = (c?.status === "DONE" ? c : (c?.previous as Record<string, unknown> | undefined)) as
+    { decision?: { decision?: string }; mode?: string } | undefined;
+  const d = done?.decision?.decision;
+  return d ? `${d}${done?.mode === "deterministic" ? "" : " · AI"}` : null;
+}
+
 export default function RadarPage() {
   const { user } = useSession();
   const [f, setF] = useState({ exchange: "", sector: "", risk_level: "", setup: "", style: "", instrument_type: "", excluded: false });
@@ -111,7 +118,7 @@ export default function RadarPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
-                  {["Stato", "Titolo", "Setup", "Ingresso", "Stop", "TP1 / TP2", "Qtà", "Importo", "Perdita a stop", "R/R netto", "Rend. netto TP1", ""].map((h) => <th key={h} className="whitespace-nowrap px-4 py-2 font-medium">{h}</th>)}
+                  {["Stato", "Titolo", "Setup", "Ingresso", "Stop", "TP1 / TP2", "Qtà", "Importo", "Perdita a stop", "R/R netto", "Rend. netto TP1", "Comitato", ""].map((h) => <th key={h} className="whitespace-nowrap px-4 py-2 font-medium">{h}</th>)}
                 </tr></thead>
                 <tbody className="divide-y divide-line">
                   {plans.data?.items.map((p) => (
@@ -127,6 +134,7 @@ export default function RadarPage() {
                       <td className="num px-4 py-2">{num(p.est_loss_at_stop_base)} €</td>
                       <td className="num px-4 py-2">{num(p.reward_risk_net)}</td>
                       <td className="num px-4 py-2">{p.net_return_tp1_pct ? `${num(p.net_return_tp1_pct)}%` : "—"}</td>
+                      <td className="px-4 py-2 text-xs">{committeeDecision(p.committee) ?? "—"}</td>
                       <td className="px-4 py-2">{p.is_demo && <DemoBadge />}</td>
                     </tr>
                   ))}

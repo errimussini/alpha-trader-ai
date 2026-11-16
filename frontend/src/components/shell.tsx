@@ -16,7 +16,7 @@ const NAV = [
   { href: "/radar", label: "Opportunity Radar", icon: Radar },
   { href: "/portfolio", label: "Portfolio Control", icon: Briefcase },
   { href: "/lab", label: "Strategy Lab", icon: FlaskConical, phase: 5 },
-  { href: "/assistant", label: "AI Assistant", icon: Bot, phase: 4 },
+  { href: "/assistant", label: "AI Assistant", icon: Bot },
   { href: "/settings", label: "Sistema", icon: Settings },
 ];
 

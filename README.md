@@ -14,13 +14,13 @@ La modalità Live non esiste in questa release.
 | 1 — Foundation | Database, autenticazione, adapter dati, PaperBroker, motore di rischio, frontend | **completata** |
 | 2 — Scanner | Universo, filtri, indicatori, regime di mercato, ranking 0–100, worker | **completata** |
 | 3 — Trade Planner | Ingressi, stop tecnici, target, size, correlazioni, stati READY/WAIT | **completata** |
-| 4 — AI Investment Committee | Agenti Claude con output strutturati | da fare |
+| 4 — AI Investment Committee | 7 agenti Claude con output JSON validati, veto del Risk Manager, AI Assistant con strumenti tipizzati | **completata** |
 | 5 — Backtest | Motore di test con controllo dei bias | da fare |
 | 6 — Paper Trading | Monitoraggio posizioni, ordini aperti, notifiche, storico equity | da fare |
 | 7 — Validazione | Test prospettici e confronto con benchmark | da fare |
 | 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
 
-Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md) · [Fase 4](docs/fase-4-ai-committee.md).
 
 ## Avvio rapido (Docker)
 
@@ -40,6 +40,16 @@ Primi passi nell'interfaccia:
    il worker scarica i dati e produce la classifica.
 4. Seleziona uno strumento, inserisci ingresso e stop: il Risk Manager calcola la quantità
    compatibile con i limiti; da lì puoi inviare un ordine simulato.
+5. Apri un piano (**Trade Detail**) e consulta il **comitato di investimento**; chiedi all'**AI Assistant**
+   ad esempio "Quali sono oggi le tre migliori opportunità?".
+
+### Attivare l'AI (facoltativo)
+
+Crea una chiave su [console.anthropic.com](https://console.anthropic.com) e aggiungila nel file `.env`
+(`ANTHROPIC_API_KEY=...`), poi riavvia `api` e `worker`. La chiave resta sul server. Senza chiave il
+comitato e l'assistente funzionano in modalità deterministica (stesse regole e stessi dati, senza la sintesi
+del modello). Ogni comitato AI esegue 7 chiamate al modello: per contenere i costi parte solo su richiesta,
+salvo `AI_AUTO_COMMITTEE_TOP_N` > 0.
 
 ## Avvio in sviluppo (senza Docker)
 
