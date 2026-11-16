@@ -53,7 +53,7 @@ export type ProviderInfo = {
 };
 
 export type SystemStatus = {
-  app: string; mode: "RESEARCH" | "PAPER"; available_modes: string[]; live_trading_enabled: boolean;
+  app: string; mode: "RESEARCH" | "PAPER" | "LIVE_ASSISTED"; available_modes: string[]; live_trading_enabled: boolean;
   kill_switch: { active: boolean; reason: string | null; since: string | null };
   market_data: ProviderInfo; database: string; redis: string; max_quote_age_minutes: number;
 };

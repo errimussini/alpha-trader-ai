@@ -8,6 +8,7 @@ import { Badge, Button, Card, CardHeader, DemoBadge, ErrorNote } from "@/compone
 import { Candles, type PriceLine } from "@/components/candles";
 import { useSession } from "@/components/shell";
 import { CommitteePanel } from "@/components/committee";
+import { LiveTicketPanel } from "@/components/live";
 
 const STATUS_TONE = { READY: "up", WAIT: "warn", REJECTED: "down", EXPIRED: "neutral" } as const;
 const STATUS_LABEL = { READY: "Pronto", WAIT: "In attesa", REJECTED: "Respinto", EXPIRED: "Scaduto" };
@@ -162,6 +163,7 @@ export default function TradeDetail({ params }: { params: Promise<{ id: string }
       </div>}
 
       <CommitteePanel planId={p.id} canRequest={user.role !== "viewer"} />
+      {p.status === "READY" && <LiveTicketPanel planId={p.id} canAct={user.role !== "viewer"} />}
     </div>
   );
 }

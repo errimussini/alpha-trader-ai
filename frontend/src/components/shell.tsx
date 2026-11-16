@@ -75,8 +75,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className="font-semibold md:hidden">ALPHA <span className="text-accent">AI</span></span>
             {s && (
               <>
-                <Badge tone={s.mode === "PAPER" ? "accent" : "neutral"}>{s.mode === "PAPER" ? "Paper Trading" : "Research"}</Badge>
-                <Badge tone="neutral" title="La modalità Live non è disponibile in questa release">Live: off</Badge>
+                <Badge tone={s.mode === "PAPER" ? "accent" : s.mode === "LIVE_ASSISTED" ? "down" : "neutral"}>
+                  {s.mode === "PAPER" ? "Paper Trading" : s.mode === "LIVE_ASSISTED" ? "Live assistito" : "Research"}</Badge>
+                {s.mode !== "LIVE_ASSISTED" && (
+                  <Badge tone="neutral" title={s.live_trading_enabled ? "Configurato sul server, non attivo" : "Spento: si attiva solo da configurazione del server"}>
+                    Live: off</Badge>
+                )}
                 {s.kill_switch.active && <Badge tone="down"><Power className="h-3 w-3" /> Kill switch attivo</Badge>}
                 <span className="hidden truncate text-muted sm:inline">
                   Dati: <span className="text-fg">{s.market_data.name}</span>

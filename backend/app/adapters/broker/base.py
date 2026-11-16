@@ -43,6 +43,8 @@ class BrokerOrderResult:
     status: str  # OPEN / FILLED / PARTIALLY_FILLED / REJECTED
     fills: list[Fill] = field(default_factory=list)
     reject_reason: str | None = None
+    broker_order_id: str | None = None
+    raw: dict = field(default_factory=dict)  # risposta del broker (senza credenziali), per l'audit
 
 
 class BrokerAdapter(ABC):

@@ -440,5 +440,8 @@ def run_monitor(db: Session, adapter: MarketDataAdapter, p: Portfolio, actor: st
                 f"Verifica prima di operare.", data=rec, key=f"recon:{today}")
     snap = take_snapshot(db, p)
     rep.snapshot = {"date": snap.snap_date.isoformat(), "equity": str(snap.equity), "stale": snap.stale}
-    audit.record(db, actor=actor, action="monitor.run", entity="portfolio", entity_id=p.id, payload=rep.to_dict())
+    acted = (rep.exits or rep.orders_filled or rep.orders_cancelled or rep.stops_raised or rep.plans_invalidated
+             or not rep.reconciliation_ok or actor not in ("monitor", "worker"))
+    if acted:  # i cicli senza azioni non riempiono l'audit (ogni azione ha comunque il proprio record)
+        audit.record(db, actor=actor, action="monitor.run", entity="portfolio", entity_id=p.id, payload=rep.to_dict())
     return rep
