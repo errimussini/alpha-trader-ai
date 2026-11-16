@@ -13,14 +13,14 @@ La modalità Live non esiste in questa release.
 |---|---|---|
 | 1 — Foundation | Database, autenticazione, adapter dati, PaperBroker, motore di rischio, frontend | **completata** |
 | 2 — Scanner | Universo, filtri, indicatori, regime di mercato, ranking 0–100, worker | **completata** |
-| 3 — Trade Planner | Ingressi, target, stop, dimensionamento completo, correlazioni | da fare |
+| 3 — Trade Planner | Ingressi, stop tecnici, target, size, correlazioni, stati READY/WAIT | **completata** |
 | 4 — AI Investment Committee | Agenti Claude con output strutturati | da fare |
 | 5 — Backtest | Motore di test con controllo dei bias | da fare |
 | 6 — Paper Trading | Monitoraggio posizioni, ordini aperti, notifiche, storico equity | da fare |
 | 7 — Validazione | Test prospettici e confronto con benchmark | da fare |
 | 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
 
-Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md) · [Fase 3](docs/fase-3-trade-planner.md).
 
 ## Avvio rapido (Docker)
 

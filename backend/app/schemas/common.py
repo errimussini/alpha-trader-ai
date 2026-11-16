@@ -290,6 +290,37 @@ class TradePlanOut(ORM):
     valid_until: datetime
     is_demo: bool
     created_at: datetime
+    portfolio_id: int | None = None
+    signal_id: int | None = None
+    setup: str | None = None
+    score: Decimal | None = None
+    risk_level: str | None = None
+    market_regime: str | None = None
+    status_reason: str | None = None
+    tp1_close_fraction: Decimal | None = None
+    trailing_stop: dict | None = None
+    entry_conditions: list = []
+    avoid_conditions: list = []
+    early_exit_conditions: list = []
+    stop_rationale: dict = {}
+    scenarios: list = []
+    correlations: dict = {}
+    gross_return_tp1_pct: Decimal | None = None
+    net_return_tp1_pct: Decimal | None = None
+    expected_value_base: Decimal | None = None
+    currency: str | None = None
+    fx_rate: Decimal | None = None
+    committee: dict = {}
+    ticker: str | None = None
+    name: str | None = None
+    isin: str | None = None
+    sector: str | None = None
+
+
+class TradePlanCreate(BaseModel):
+    signal_id: int | None = None
+    scan_id: int | None = None
+    top_n: int = Field(default=10, ge=1, le=50)
 
 
 class AuditOut(ORM):

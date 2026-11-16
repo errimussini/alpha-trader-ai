@@ -23,11 +23,22 @@ from app.core.config import get_settings
 from app.core.db import SessionLocal
 from app.models.entities import Alert, ScanRun
 from app.services import audit
+from app.services.planner import expire_plans, generate_for_scan, plans_for_user_portfolios
 from app.services.scanner import enqueue_scan, run_scan
 
 log = logging.getLogger("worker")
 STALE_AFTER = timedelta(minutes=30)
-PERIODIC_JOBS: list[tuple[str, int, Callable[[], None]]] = []  # (nome, intervallo s, funzione)
+def _expire_job() -> None:
+    with SessionLocal() as db:
+        n = expire_plans(db)
+        db.commit()
+        if n:
+            log.info("%s piani scaduti", n)
+
+
+PERIODIC_JOBS: list[tuple[str, int, Callable[[], None]]] = [  # (nome, intervallo s, funzione)
+    ("expire_plans", 600, _expire_job),
+]
 _stop = False
 
 
@@ -72,8 +83,13 @@ def claim_and_run() -> bool:
         sr.status, sr.started_at, sr.heartbeat_at = "RUNNING", datetime.now(UTC), datetime.now(UTC)
         db.commit()
         try:
-            run_scan(db, get_market_data_adapter(), sr)
+            adapter = get_market_data_adapter()
+            run_scan(db, adapter, sr)
             log.info("scansione #%s completata: %s", sr.id, sr.stats)
+            for pf, owner in plans_for_user_portfolios(db):
+                plans = generate_for_scan(db, adapter, sr, pf, "worker", get_settings().plan_top_n)
+                db.commit()
+                log.info("portafoglio #%s: %s piani generati", pf.id, len(plans))
         except Exception as e:  # noqa: BLE001
             db.rollback()
             sr = db.get(ScanRun, sr.id)

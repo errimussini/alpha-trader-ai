@@ -49,7 +49,7 @@ def test_only_admin_changes_mode_and_kill_switch(client, analyst):
 
 def test_phase_placeholders_are_honest(client, analyst):
     assert client.get("/api/opportunities", headers=analyst).json()["total"] == 0
-    for path in ("/api/trade-plans", "/api/backtests"):
+    for path in ("/api/backtests",):
         r = client.post(path, headers=analyst)
         assert r.status_code == 501
         assert r.json()["error"]["code"] == "not_implemented"

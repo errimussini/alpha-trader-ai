@@ -13,7 +13,7 @@ from app.adapters.broker.paper import PaperBroker
 from app.adapters.market_data.base import MarketDataAdapter
 from app.core.config import get_settings
 from app.core.errors import AppError, Conflict, SafetyBlock
-from app.models.entities import CashMovement, Execution, Instrument, Order, Portfolio, Position, User
+from app.models.entities import CashMovement, Execution, Instrument, Order, Portfolio, Position, TradePlan, User
 from app.services import audit, safety
 from app.services.market_data import fetch_fx, fetch_quote
 from app.services.portfolio import risk_param, value_portfolio
@@ -62,6 +62,22 @@ def place_paper_order(db: Session, *, adapter: MarketDataAdapter, user: User, po
 
     # 2) modalità + kill switch
     safety.assert_can_trade_paper(db)
+    if trade_plan_id is not None and side == "BUY":
+        plan = db.get(TradePlan, trade_plan_id)
+        if plan is None or plan.portfolio_id != portfolio.id or plan.instrument_id != instrument.id:
+            raise AppError("Piano operativo non valido per questo portafoglio/strumento.", code="invalid_plan")
+        if plan.status != "READY":
+            raise SafetyBlock(f"Il piano #{plan.id} è {plan.status}: solo i piani READY sono eseguibili. "
+                              f"{plan.status_reason or ''}".strip(), code="plan_not_ready")
+        if plan.valid_until < datetime.now(UTC):
+            raise SafetyBlock("Validità del piano scaduta.", code="plan_expired")
+        if quantity > plan.quantity:
+            raise SafetyBlock(f"Quantità {quantity} superiore a quella approvata dal Risk Manager ({plan.quantity}).",
+                              code="qty_above_plan")
+        stop_loss = stop_loss if stop_loss is not None else plan.stop_loss
+        if stop_loss < plan.stop_loss:
+            raise SafetyBlock("Stop più basso di quello del piano: serve una nuova autorizzazione.", code="stop_widening")
+        take_profit_1 = take_profit_1 if take_profit_1 is not None else plan.take_profit_1
     if side == "SELL" and not s.short_selling_enabled:
         pos = _open_position(db, portfolio.id, instrument.id)
         if pos is None or pos.quantity < quantity:
@@ -144,6 +160,10 @@ def place_paper_order(db: Session, *, adapter: MarketDataAdapter, user: User, po
                     pos.stop_loss = stop_loss
                 if take_profit_1 is not None:
                     pos.take_profit_1 = take_profit_1
+                if trade_plan_id is not None:
+                    tp = db.get(TradePlan, trade_plan_id)
+                    pos.trade_plan_id = trade_plan_id
+                    pos.take_profit_2 = tp.take_profit_2 if tp else None
                 portfolio.cash -= total
                 db.add(CashMovement(portfolio_id=portfolio.id, kind="TRADE", amount_base=-gross_base.quantize(_M),
                                     currency=portfolio.base_currency, reference=f"order:{order.id}"))

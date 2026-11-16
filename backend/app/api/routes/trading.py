@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.adapters.market_data.base import MarketDataAdapter
@@ -16,8 +16,10 @@ from app.core.config import get_settings
 from app.core.db import get_db
 from app.core.errors import AppError, NotFound, NotYetImplemented
 from app.core.security import Role
-from app.models.entities import Instrument, ModelEvaluation, RiskAssessment, TradePlan, User
-from app.schemas.common import Page, RiskCheckIn, RiskCheckOut, TradePlanOut
+from app.models.entities import Instrument, ModelEvaluation, RiskAssessment, ScanRun, TradePlan, User
+from app.services.planner import generate_for_scan, generate_plan, get_signal
+from app.services.scanner import latest_done_scan
+from app.schemas.common import Page, RiskCheckIn, RiskCheckOut, TradePlanCreate, TradePlanOut
 from app.services import audit
 from app.services.market_data import fetch_fx, get_instrument_or_404, latest_fx
 from app.services.portfolio import get_or_create_paper_portfolio, risk_param, value_portfolio
@@ -26,20 +28,33 @@ from app.services.risk import Costs, PortfolioContext, RiskLimits, SizingRequest
 router = APIRouter(prefix="/api", tags=["trading"])
 
 
+def plan_out(p: TradePlan) -> TradePlanOut:
+    o = TradePlanOut.model_validate(p)
+    i = p.instrument
+    return o.model_copy(update={"ticker": f"{i.symbol}.{i.exchange}", "name": i.name, "isin": i.isin, "sector": i.sector})
+
+
 @router.get("/opportunities", response_model=Page[TradePlanOut])
 def opportunities(pg: Pagination = Depends(), status: str | None = Query(None, pattern="^(READY|WAIT|REJECTED|EXPIRED)$"),
-                  sector: str | None = None, exchange: str | None = None,
-                  db: Session = Depends(get_db), _: User = Depends(current_user)):
-    stmt = select(TradePlan).join(Instrument, TradePlan.instrument_id == Instrument.id)
+                  active: bool = Query(True, description="solo READY e WAIT"),
+                  sector: str | None = None, exchange: str | None = None, risk_level: str | None = None,
+                  style: str | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    p = get_or_create_paper_portfolio(db, user)
+    db.commit()
+    stmt = select(TradePlan).join(Instrument, TradePlan.instrument_id == Instrument.id).where(TradePlan.portfolio_id == p.id)
     if status:
         stmt = stmt.where(TradePlan.status == status)
-    if sector:
-        stmt = stmt.where(Instrument.sector == sector)
-    if exchange:
-        stmt = stmt.where(Instrument.exchange == exchange.upper())
+    elif active:
+        stmt = stmt.where(TradePlan.status.in_(("READY", "WAIT")))
+    for col, val in ((Instrument.sector, sector), (Instrument.exchange, exchange.upper() if exchange else None),
+                     (TradePlan.risk_level, risk_level), (TradePlan.strategy_style, style)):
+        if val:
+            stmt = stmt.where(col == val)
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
-    rows = db.execute(stmt.order_by(TradePlan.created_at.desc()).offset(pg.offset).limit(pg.page_size)).scalars()
-    return Page(items=list(rows), total=total, page=pg.page, page_size=pg.page_size)
+    order = case((TradePlan.status == "READY", 0), (TradePlan.status == "WAIT", 1), else_=2)
+    rows = db.execute(stmt.order_by(order, TradePlan.score.desc().nulls_last(), TradePlan.created_at.desc())
+                      .offset(pg.offset).limit(pg.page_size)).scalars()
+    return Page(items=[plan_out(r) for r in rows], total=total, page=pg.page, page_size=pg.page_size)
 
 
 @router.get("/opportunities/{plan_id}", response_model=TradePlanOut)
@@ -47,12 +62,22 @@ def opportunity(plan_id: int, db: Session = Depends(get_db), _: User = Depends(c
     p = db.get(TradePlan, plan_id)
     if not p:
         raise NotFound("Opportunità non trovata")
-    return p
+    return plan_out(p)
 
 
-@router.post("/trade-plans", status_code=501)
-def trade_plans(_: User = Depends(require_role(Role.ANALYST))):
-    raise NotYetImplemented("Il Trade Plan Generator è previsto in Fase 3. Il dimensionamento è già disponibile su POST /api/risk/check.")
+@router.post("/trade-plans", response_model=list[TradePlanOut])
+def trade_plans(body: TradePlanCreate, user: User = Depends(require_role(Role.ANALYST)), db: Session = Depends(get_db),
+                adapter: MarketDataAdapter = Depends(market_data)):
+    p = get_or_create_paper_portfolio(db, user)
+    if body.signal_id:
+        plans = [generate_plan(db, adapter, get_signal(db, body.signal_id), p, user.email)]
+    else:
+        scan = db.get(ScanRun, body.scan_id) if body.scan_id else latest_done_scan(db)
+        if scan is None or scan.status != "DONE":
+            raise AppError("Nessuna scansione completata da cui generare i piani.", code="no_scan")
+        plans = generate_for_scan(db, adapter, scan, p, user.email, body.top_n)
+    db.commit()
+    return [plan_out(x) for x in plans]
 
 
 @router.post("/risk/check", response_model=RiskCheckOut)

@@ -153,3 +153,21 @@ export const FACTOR_LABELS: Record<string, string> = {
 export const REGIME_LABELS: Record<string, string> = {
   BULL: "Rialzista", BEAR: "Ribassista", SIDEWAYS: "Laterale", HIGH_VOLATILITY: "Alta volatilità", UNKNOWN: "Non determinabile",
 };
+
+export type TradePlan = {
+  id: number; instrument_id: number; ticker: string | null; name: string | null; isin: string | null; sector: string | null;
+  model_version: string; direction: string; strategy_style: string; setup: string | null; score: string | null;
+  risk_level: string | null; market_regime: string | null; price_reference: string; price_source: string; price_time: string;
+  entry_price: string; entry_low: string | null; entry_high: string | null; stop_loss: string; take_profit_1: string;
+  take_profit_2: string | null; tp1_close_fraction: string | null; trailing_stop: Record<string, string> | null;
+  quantity: string; notional_base: string; est_loss_at_stop_base: string; est_gain_tp1_base: string | null;
+  est_gain_tp2_base: string | null; reward_risk_net: string | null; calibrated_probability: string | null;
+  expected_value_base: string | null; gross_return_tp1_pct: string | null; net_return_tp1_pct: string | null;
+  horizon_days: number; rationale_for: string[]; rationale_against: string[]; invalidation_conditions: string[];
+  entry_conditions: string[]; avoid_conditions: string[]; early_exit_conditions: string[];
+  stop_rationale: Record<string, unknown>; scenarios: { name: string; exit: number; pnl_base: string | null }[];
+  correlations: { values?: Record<string, number | null>; max?: number | null; notes?: string[] };
+  status: "READY" | "WAIT" | "REJECTED" | "EXPIRED"; status_reason: string | null; valid_until: string;
+  currency: string | null; fx_rate: string | null; is_demo: boolean; created_at: string;
+  committee: Record<string, unknown>;
+};

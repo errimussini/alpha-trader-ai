@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     scan_min_market_cap: float = 1e9
     scan_min_traded_value: float = 5e6
     scan_max_spread_pct: float = 0.5
+    plan_top_n: int = 10  # piani operativi generati automaticamente dopo ogni scansione
 
     # --- Profilo operativo / rischio (parametri iniziali, da validare) ---
     base_currency: str = "EUR"
