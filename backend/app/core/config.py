@@ -1,0 +1,67 @@
+"""Configurazione centrale. Tutti i valori sono letti da variabili d'ambiente / file .env.
+
+I parametri di rischio sono valori INIZIALI da sottoporre a test, non parametri ottimizzati.
+"""
+from decimal import Decimal
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_name: str = "ALPHA TRADER AI"
+    environment: Literal["development", "test", "production"] = "development"
+
+    # --- Database / cache ---
+    database_url: str = "postgresql+psycopg://alpha:alpha@localhost:5432/alpha_trader"
+    redis_url: str = "redis://localhost:6379/0"
+
+    # --- Sicurezza ---
+    jwt_secret: SecretStr = SecretStr("change-me-in-env")
+    jwt_algorithm: str = "HS256"
+    access_token_minutes: int = 60
+    cors_origins: list[str] = ["http://localhost:3000"]
+    bootstrap_admin_email: str | None = None
+    bootstrap_admin_password: SecretStr | None = None
+
+    # --- Modalità operativa ---
+    # Solo RESEARCH e PAPER sono supportate nella prima release. LIVE non è attivabile.
+    default_mode: Literal["RESEARCH", "PAPER"] = "RESEARCH"
+    live_trading_enabled: bool = False  # bloccato a livello di codice, vedi services/safety.py
+
+    # --- Dati di mercato ---
+    # yahoo = gratuito non ufficiale (default); eodhd = professionale a pagamento; csv = file utente; demo = sintetico
+    market_data_provider: Literal["yahoo", "eodhd", "csv", "demo"] = "yahoo"
+    eodhd_api_key: SecretStr | None = None
+    eodhd_base_url: str = "https://eodhd.com/api"
+    eodhd_timeout_seconds: float = 20.0
+    csv_data_dir: str = "data/csv"
+    # Una quotazione più vecchia di questa soglia blocca ordini e raccomandazioni.
+    max_quote_age_minutes: int = 60
+    allow_demo_paper_trading: bool = True  # ordini su dati DEMO sono marcati is_demo=True
+    benchmark_symbols: list[str] = ["SPY.US", "QQQ.US", "VGK.US", "EXSA.DE", "CSSPX.MI"]
+
+    # --- Profilo operativo / rischio (parametri iniziali, da validare) ---
+    base_currency: str = "EUR"
+    initial_paper_capital: Decimal = Decimal("10000")
+    risk_per_trade_pct: Decimal = Decimal("0.5")
+    max_aggregate_risk_pct: Decimal = Decimal("3.0")
+    max_position_exposure_pct: Decimal = Decimal("15.0")
+    max_sector_exposure_pct: Decimal = Decimal("30.0")
+    min_cash_reserve_pct: Decimal = Decimal("5.0")
+    max_daily_loss_pct: Decimal = Decimal("2.0")
+    max_total_drawdown_pct: Decimal = Decimal("10.0")
+    commission_per_order: Decimal = Decimal("2.00")
+    commission_pct: Decimal = Decimal("0.0")
+    slippage_bps: Decimal = Decimal("5")
+    leverage_enabled: bool = Field(default=False)
+    short_selling_enabled: bool = Field(default=False)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

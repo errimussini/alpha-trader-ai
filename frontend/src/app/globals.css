@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 9 11 15;
+  --panel: 15 18 24;
+  --raised: 22 26 34;
+  --line: 34 40 51;
+  --fg: 228 232 240;
+  --muted: 135 145 162;
+  --accent: 79 157 255;
+  --up: 38 196 133;
+  --down: 240 83 92;
+  --warn: 236 176 61;
+  color-scheme: dark;
+}
+
+html, body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+body { font-feature-settings: "tnum" 1, "cv11" 1; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+::selection { background: rgb(var(--accent) / 0.35); }
+
+:root {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Mono", ui-monospace, monospace;
+}
