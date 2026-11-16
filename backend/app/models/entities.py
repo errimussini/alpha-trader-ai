@@ -437,6 +437,12 @@ class Position(Base):
     opened_at: Mapped[datetime] = _ts(default=utcnow)
     closed_at: Mapped[datetime | None] = _ts()
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Fase 6: monitoraggio
+    high_water: Mapped[Decimal | None] = mapped_column(PRICE)  # massimo prezzo osservato dal monitoraggio
+    tp1_done: Mapped[bool] = mapped_column(Boolean, default=False)
+    trailing_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    trailing_distance: Mapped[Decimal | None] = mapped_column(PRICE)  # in valuta dello strumento
+    last_checked_at: Mapped[datetime | None] = _ts()
     instrument: Mapped[Instrument] = relationship()
 
 
@@ -459,6 +465,12 @@ class Order(Base):
     reference_quote_id: Mapped[int | None] = mapped_column(ForeignKey("market_quotes.id"))
     created_by: Mapped[str] = mapped_column(String(255))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Fase 6: livelli autorizzati all'invio, validità, motivo (ENTRY, MANUAL, STOP, TRAIL, TP1, TP2)
+    stop_loss: Mapped[Decimal | None] = mapped_column(PRICE)
+    take_profit_1: Mapped[Decimal | None] = mapped_column(PRICE)
+    valid_until: Mapped[datetime | None] = _ts()
+    purpose: Mapped[str] = mapped_column(String(8), default="MANUAL")
+    last_checked_at: Mapped[datetime | None] = _ts()
     created_at: Mapped[datetime] = _ts(default=utcnow)
     updated_at: Mapped[datetime] = _ts(default=utcnow, onupdate=utcnow)
     instrument: Mapped[Instrument] = relationship()
@@ -500,6 +512,28 @@ class Alert(Base):
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = _ts(default=utcnow, index=True)
     acknowledged_at: Mapped[datetime | None] = _ts()
+    dedup_key: Mapped[str | None] = mapped_column(String(160), index=True)  # Fase 6: niente alert ripetuti
+    notified_at: Mapped[datetime | None] = _ts()
+
+
+class EquitySnapshot(Base):
+    """Una riga per portafoglio e giorno (l'ultimo controllo del giorno sovrascrive): base del rendimento giornaliero."""
+    __tablename__ = "equity_snapshots"
+    __table_args__ = (UniqueConstraint("portfolio_id", "snap_date", name="uq_equity_snapshot_day"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    portfolio_id: Mapped[int] = mapped_column(ForeignKey("portfolios.id", ondelete="CASCADE"), index=True)
+    snap_date: Mapped[date] = mapped_column(Date)
+    equity: Mapped[Decimal] = mapped_column(MONEY)
+    cash: Mapped[Decimal] = mapped_column(MONEY)
+    market_value: Mapped[Decimal] = mapped_column(MONEY)
+    realized_pnl: Mapped[Decimal] = mapped_column(MONEY)
+    unrealized_pnl: Mapped[Decimal] = mapped_column(MONEY)
+    drawdown_pct: Mapped[Decimal] = mapped_column(Numeric(10, 4))
+    aggregate_risk_pct: Mapped[Decimal] = mapped_column(Numeric(10, 4))
+    open_positions: Mapped[int] = mapped_column(Integer)
+    stale: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    taken_at: Mapped[datetime] = _ts(default=utcnow)
 
 
 class AuditLog(Base):

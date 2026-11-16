@@ -73,7 +73,29 @@ export type Position = {
   avg_price: string; currency: string; last_price: string | null; price_time: string | null;
   price_source: string | null; market_value_base: string; unrealized_pnl_base: string; stop_loss: string | null;
   take_profit_1: string | null; risk_to_stop_base: string | null; stale: boolean; is_demo: boolean; opened_at: string;
+  take_profit_2: string | null; trade_plan_id: number | null; tp1_done: boolean; trailing_active: boolean;
+  trailing_distance: string | null; high_water: string | null; last_checked_at: string | null;
 };
+
+export type EquitySnapshot = {
+  snap_date: string; equity: string; cash: string; market_value: string; realized_pnl: string; unrealized_pnl: string;
+  drawdown_pct: string; aggregate_risk_pct: string; open_positions: number; stale: boolean; is_demo: boolean; taken_at: string;
+};
+
+export type MonitorReport = {
+  portfolio_id: number; started_at: string; can_execute: boolean; blocked_reason: string | null; instruments: number;
+  data_issues: string[]; orders_checked: number; orders_filled: number[]; orders_cancelled: number[];
+  exits: { position_id: number; order_id: number; purpose: string; status: string; quantity: string }[];
+  stops_raised: { position_id: number; from: string; to: string; why: string }[]; plans_invalidated: number[];
+  alerts: number; reconciliation_ok: boolean; snapshot: { date: string; equity: string; stale: boolean } | null;
+};
+
+export type Reconciliation = {
+  ok: boolean; checked_at: string; cash_from_movements: string; cash: string;
+  issues: { check: string; message: string; expected?: string; actual?: string }[];
+};
+
+export type AlertSummary = { active: number; by_kind: Record<string, number>; by_severity: Record<string, number> };
 
 export type OverviewItem = {
   ticker: string; name: string | null; price: string | null; change_pct: string | null; quote_time: string | null;
@@ -85,6 +107,13 @@ export type MarketOverview = {
 
 export type Alert = {
   id: number; kind: string; severity: "INFO" | "WARNING" | "CRITICAL"; message: string; created_at: string;
+  instrument_id: number | null; portfolio_id: number | null; data: Record<string, unknown>; acknowledged_at: string | null;
+};
+
+export const ALERT_KINDS: Record<string, string> = {
+  ENTRY_OPPORTUNITY: "Opportunità di ingresso", SETUP_INVALIDATED: "Setup invalidato", STOP_HIT: "Stop raggiunto",
+  TARGET_HIT: "Target raggiunto", REVIEW_POSITION: "Rivaluta posizione", AGGREGATE_RISK: "Rischio aggregato",
+  DATA_ANOMALY: "Anomalia dati", BROKER_ANOMALY: "Anomalia broker", SYSTEM: "Sistema",
 };
 
 export type Instrument = {
@@ -116,7 +145,9 @@ export type RiskCheck = {
 export type Order = {
   id: number; client_order_id: string; instrument_id: number; side: string; order_type: string; quantity: string;
   filled_quantity: string; limit_price: string | null; status: string; reject_reason: string | null; mode: string;
-  is_demo: boolean; created_at: string;
+  is_demo: boolean; created_at: string; stop_loss: string | null; take_profit_1: string | null;
+  valid_until: string | null; purpose: string; trade_plan_id: number | null; last_checked_at: string | null;
+  ticker: string | null;
 };
 
 export type ScanRun = {

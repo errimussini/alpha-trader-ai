@@ -72,6 +72,14 @@ class Settings(BaseSettings):
     ai_auto_committee_top_n: int = 0  # comitato AI automatico sui primi N piani READY/WAIT dopo la scansione
     ai_assistant_max_steps: int = 8
 
+    # --- Monitoraggio paper trading (Fase 6) ---
+    monitor_interval_seconds: int = 300  # ciclo del worker su ordini aperti, posizioni e piani attivi
+    paper_auto_exits: bool = True  # stop/TP autorizzati all'ingresso eseguiti in simulazione; False = solo alert
+    paper_limit_order_days: int = 5  # validità di un ordine LIMIT senza piano
+    paper_max_participation_pct: Decimal = Decimal("0")  # >0: eseguito max questa % del volume (fill parziali)
+    alert_webhook_url: SecretStr | None = None  # notifiche WARNING/CRITICAL in POST JSON (opzionale)
+    alert_dedup_hours: int = 24
+
     # --- Profilo operativo / rischio (parametri iniziali, da validare) ---
     base_currency: str = "EUR"
     initial_paper_capital: Decimal = Decimal("10000")

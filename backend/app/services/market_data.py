@@ -1,6 +1,7 @@
 """Acquisizione e persistenza dei dati di mercato dal provider configurato."""
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.market_data.base import DataProviderError, MarketDataAdapter, Quote, split_ticker
 from app.core.errors import DataUnavailable, NotFound
-from app.models.entities import Alert, AlertKind, HistoricalBar, Instrument, MarketQuote, Severity
+from app.models.entities import AlertKind, HistoricalBar, Instrument, MarketQuote, Severity
 
 
 def find_instrument(db: Session, ticker: str) -> Instrument | None:
@@ -17,8 +18,10 @@ def find_instrument(db: Session, ticker: str) -> Instrument | None:
 
 
 def _data_alert(db: Session, message: str, instrument_id: int | None = None, data: dict | None = None) -> None:
-    db.add(Alert(kind=AlertKind.DATA_ANOMALY, severity=Severity.WARNING, message=message,
-                 instrument_id=instrument_id, data=data or {}))
+    from app.services.alerts import raise_alert  # import locale: evita cicli
+    key = "data:" + hashlib.sha1(f"{instrument_id}|{message}".encode()).hexdigest()[:20]
+    raise_alert(db, AlertKind.DATA_ANOMALY, Severity.WARNING, message, instrument_id=instrument_id, data=data,
+                dedup_key=key)
 
 
 def upsert_instrument(db: Session, adapter: MarketDataAdapter, ticker: str) -> Instrument:

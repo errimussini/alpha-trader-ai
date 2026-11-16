@@ -26,6 +26,7 @@ class MarketSnapshot:
     ask: Decimal | None
     quote_time: datetime
     source: str
+    volume: int | None = None  # volume cumulato della seduta, se il provider lo fornisce
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,11 @@ class BrokerOrderResult:
 
 
 class BrokerAdapter(ABC):
+    """Contratto comune a PaperBroker e (in futuro) ai broker reali.
+
+    Un adapter con `is_live = True` non viene mai usato dal codice di questa release senza i controlli
+    di `services/live.py` (Fase 8): modalità LIVE_ASSISTED abilitata e conferma umana per ogni ordine.
+    """
     name: str = "abstract"
     is_live: bool = False
 
