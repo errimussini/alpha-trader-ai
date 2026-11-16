@@ -385,6 +385,7 @@ class TradePlan(Base):
     currency: Mapped[str | None] = mapped_column(String(3))
     fx_rate: Mapped[Decimal | None] = mapped_column(Numeric(20, 10))
     committee: Mapped[dict] = mapped_column(JSON, default=dict)  # Fase 4: valutazioni degli agenti
+    calibration: Mapped[dict] = mapped_column(JSON, default=dict)  # Fase 5: origine di probabilità ed EV (fuori campione)
     instrument: Mapped[Instrument] = relationship()
 
 
@@ -555,4 +556,27 @@ class Job(Base):
     created_at: Mapped[datetime] = _ts(default=utcnow)
     started_at: Mapped[datetime | None] = _ts()
     heartbeat_at: Mapped[datetime | None] = _ts()
+    finished_at: Mapped[datetime | None] = _ts()
+
+
+# ---------------------------------------------------------------- backtest (Fase 5)
+class BacktestRun(Base):
+    """Esecuzione del Backtest Engine: parametri, universo, periodo e risultati completi."""
+    __tablename__ = "backtest_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(16), index=True)  # QUEUED / RUNNING / DONE / FAILED
+    strategy_version_id: Mapped[int | None] = mapped_column(ForeignKey("strategy_versions.id"))
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("jobs.id", ondelete="SET NULL"))
+    engine_version: Mapped[str] = mapped_column(String(32))
+    params: Mapped[dict] = mapped_column(JSON, default=dict)
+    universe: Mapped[list] = mapped_column(JSON, default=list)
+    period_start: Mapped[date | None] = mapped_column(Date)
+    period_end: Mapped[date | None] = mapped_column(Date)
+    summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    results: Mapped[dict] = mapped_column(JSON, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
+    requested_by: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = _ts(default=utcnow)
     finished_at: Mapped[datetime | None] = _ts()

@@ -10,12 +10,12 @@ import { useApi } from "@/lib/hooks";
 import { cn } from "@/lib/format";
 import { Badge } from "./ui/primitives";
 
-const NAV = [
+const NAV: { href: string; label: string; icon: typeof Activity; phase?: number }[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/market", label: "Mercati e dati", icon: LineChart },
   { href: "/radar", label: "Opportunity Radar", icon: Radar },
   { href: "/portfolio", label: "Portfolio Control", icon: Briefcase },
-  { href: "/lab", label: "Strategy Lab", icon: FlaskConical, phase: 5 },
+  { href: "/lab", label: "Strategy Lab", icon: FlaskConical },
   { href: "/assistant", label: "AI Assistant", icon: Bot },
   { href: "/settings", label: "Sistema", icon: Settings },
 ];

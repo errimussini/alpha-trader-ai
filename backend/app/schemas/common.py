@@ -311,6 +311,7 @@ class TradePlanOut(ORM):
     currency: str | None = None
     fx_rate: Decimal | None = None
     committee: dict = {}
+    calibration: dict = {}
     ticker: str | None = None
     name: str | None = None
     isin: str | None = None
