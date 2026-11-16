@@ -28,6 +28,16 @@ services:
       redis: { condition: service_started }
     ports: ["127.0.0.1:8000:8000"]
 
+  worker:
+    build: ./backend
+    env_file: .env
+    command: ["python", "-m", "app.worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://alpha:${POSTGRES_PASSWORD:-alpha}@db:5432/alpha_trader
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      api: { condition: service_started }
+
   web:
     build:
       context: ./frontend

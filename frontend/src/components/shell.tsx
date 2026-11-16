@@ -13,7 +13,7 @@ import { Badge } from "./ui/primitives";
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/market", label: "Mercati e dati", icon: LineChart },
-  { href: "/radar", label: "Opportunity Radar", icon: Radar, phase: 2 },
+  { href: "/radar", label: "Opportunity Radar", icon: Radar },
   { href: "/portfolio", label: "Portfolio Control", icon: Briefcase },
   { href: "/lab", label: "Strategy Lab", icon: FlaskConical, phase: 5 },
   { href: "/assistant", label: "AI Assistant", icon: Bot, phase: 4 },

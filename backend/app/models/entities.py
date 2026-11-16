@@ -267,9 +267,54 @@ class ModelEvaluation(Base):
     created_at: Mapped[datetime] = _ts(default=utcnow)
 
 
+class UniverseMember(Base):
+    """Titoli monitorati dallo scanner (universo investibile configurabile)."""
+    __tablename__ = "universe_members"
+    __table_args__ = (UniqueConstraint("ticker", name="uq_universe_ticker"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(48))  # SIMBOLO.BORSA
+    list_name: Mapped[str] = mapped_column(String(64), default="custom")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    added_by: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = _ts(default=utcnow)
+
+
+class ScanRun(Base):
+    """Esecuzione dello scanner. Funziona anche da coda di lavoro (status QUEUED -> RUNNING -> DONE/FAILED)."""
+    __tablename__ = "scan_runs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(64), unique=True)
+    trigger: Mapped[str] = mapped_column(String(16))  # MANUAL / SCHEDULED
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    requested_by: Mapped[str] = mapped_column(String(255))
+    params: Mapped[dict] = mapped_column(JSON, default=dict)
+    as_of: Mapped[date | None] = mapped_column(Date)
+    model_version: Mapped[str | None] = mapped_column(String(64))
+    data_source: Mapped[str | None] = mapped_column(String(64))
+    regime: Mapped[dict | None] = mapped_column(JSON)
+    stats: Mapped[dict] = mapped_column(JSON, default=dict)
+    errors: Mapped[list] = mapped_column(JSON, default=list)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = _ts(default=utcnow)
+    started_at: Mapped[datetime | None] = _ts()
+    heartbeat_at: Mapped[datetime | None] = _ts()
+    finished_at: Mapped[datetime | None] = _ts()
+
+
 class TradingSignal(Base):
     __tablename__ = "trading_signals"
     id: Mapped[int] = mapped_column(primary_key=True)
+    scan_run_id: Mapped[int | None] = mapped_column(ForeignKey("scan_runs.id", ondelete="CASCADE"), index=True)
+    eligible: Mapped[bool] = mapped_column(Boolean, default=True)
+    setup: Mapped[str | None] = mapped_column(String(24))
+    strategy_style: Mapped[str | None] = mapped_column(String(16))
+    horizon: Mapped[str | None] = mapped_column(String(32))
+    risk_level: Mapped[str | None] = mapped_column(String(8))
+    coverage: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
+    price: Mapped[Decimal | None] = mapped_column(PRICE)
+    price_date: Mapped[date | None] = mapped_column(Date)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
     instrument_id: Mapped[int] = mapped_column(ForeignKey("instruments.id"), index=True)
     strategy_version_id: Mapped[int] = mapped_column(ForeignKey("strategy_versions.id"))
     analysis_time: Mapped[datetime] = _ts(index=True)
@@ -282,6 +327,7 @@ class TradingSignal(Base):
     rationale: Mapped[dict] = mapped_column(JSON, default=dict)  # pro, contro, condizioni di errore
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = _ts(default=utcnow)
+    instrument: Mapped[Instrument] = relationship()
 
 
 class TradePlan(Base):

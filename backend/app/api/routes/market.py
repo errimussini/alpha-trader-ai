@@ -25,6 +25,15 @@ def _benchmarks(adapter: MarketDataAdapter) -> list[str]:
     return DemoAdapter.symbols() if adapter.is_demo else get_settings().benchmark_symbols
 
 
+def _regime(db: Session) -> dict:
+    from app.services.scanner import latest_done_scan
+    sr = latest_done_scan(db)
+    if not sr or not sr.regime:
+        return {"status": "NOT_AVAILABLE", "reason": "Regime calcolato alla prima scansione completata."}
+    return {"status": "OK", "regime": sr.regime["regime"], "as_of": str(sr.as_of), "scan_id": sr.id,
+            "notes": sr.regime.get("notes", [])}
+
+
 @router.get("/market/overview", response_model=MarketOverview)
 def overview(db: Session = Depends(get_db), adapter: MarketDataAdapter = Depends(market_data),
              _: User = Depends(current_user)):
@@ -44,7 +53,7 @@ def overview(db: Session = Depends(get_db), adapter: MarketDataAdapter = Depends
                                   source=q.source, is_demo=q.is_demo, stale=stale, status="STALE" if stale else "OK"))
     return MarketOverview(
         provider=asdict(adapter.info()), items=items, generated_at=datetime.now(UTC),
-        regime={"status": "NOT_AVAILABLE", "reason": "Il Market Analyst (regime di mercato) arriva in Fase 2."},
+        regime=_regime(db),
     )
 
 

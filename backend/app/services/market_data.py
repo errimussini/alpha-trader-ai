@@ -41,6 +41,7 @@ def upsert_instrument(db: Session, adapter: MarketDataAdapter, ticker: str) -> I
     inst.market_cap = info.market_cap
     inst.data_source = info.source
     inst.is_demo = info.is_demo
+    inst.updated_at = datetime.now(UTC)
     db.flush()
     return inst
 

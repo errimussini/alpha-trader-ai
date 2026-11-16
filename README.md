@@ -12,7 +12,7 @@ La modalità Live non esiste in questa release.
 | Fase | Contenuto | Stato |
 |---|---|---|
 | 1 — Foundation | Database, autenticazione, adapter dati, PaperBroker, motore di rischio, frontend | **completata** |
-| 2 — Scanner | Selezione autonoma e ranking quantitativo | da fare |
+| 2 — Scanner | Universo, filtri, indicatori, regime di mercato, ranking 0–100, worker | **completata** |
 | 3 — Trade Planner | Ingressi, target, stop, dimensionamento completo, correlazioni | da fare |
 | 4 — AI Investment Committee | Agenti Claude con output strutturati | da fare |
 | 5 — Backtest | Motore di test con controllo dei bias | da fare |
@@ -20,7 +20,7 @@ La modalità Live non esiste in questa release.
 | 7 — Validazione | Test prospettici e confronto con benchmark | da fare |
 | 8 — Integrazioni live | Solo architettura, con conferma umana per ogni ordine | da fare |
 
-Dettagli della Fase 1: [docs/fase-1-foundation.md](docs/fase-1-foundation.md).
+Dettagli: [Fase 1](docs/fase-1-foundation.md) · [Fase 2](docs/fase-2-scanner.md).
 
 ## Avvio rapido (Docker)
 
@@ -36,7 +36,9 @@ Primi passi nell'interfaccia:
 1. **Mercati e dati** → *Benchmark* per scaricare gli ETF di riferimento, oppure inserisci i ticker
    (es. `AAPL.US ENI.MI SAP.DE`).
 2. **Sistema** → passa a *Paper Trading* per abilitare gli ordini simulati.
-3. Seleziona uno strumento, inserisci ingresso e stop: il Risk Manager calcola la quantità
+3. **Opportunity Radar** → *Carica lista iniziale* (151 titoli ed ETF USA/Europa), poi *Avvia scansione*:
+   il worker scarica i dati e produce la classifica.
+4. Seleziona uno strumento, inserisci ingresso e stop: il Risk Manager calcola la quantità
    compatibile con i limiti; da lì puoi inviare un ordine simulato.
 
 ## Avvio in sviluppo (senza Docker)
@@ -48,6 +50,8 @@ pip install -e ".[dev]"
 cp ../.env.example .env     # aggiungi DATABASE_URL=postgresql+psycopg://alpha:alpha@localhost:5432/alpha_trader
 alembic upgrade head
 uvicorn app.main:app --reload
+
+python -m app.worker        # in un secondo terminale: scansioni in coda e programmate
 
 # frontend
 cd frontend
@@ -91,7 +95,9 @@ backend/
     services/               risk (deterministico), paper_trading, portfolio, safety, audit, market_data
     models/entities.py      schema completo (19 entità della specifica + utenti e impostazioni)
   alembic/                  migrazioni (incluso trigger che rende immutabile l'audit log)
-  tests/                    42 test automatici
+  tests/                    test automatici
+    analytics/              indicatori, setup, regime di mercato, scoring (puri e deterministici)
+    worker.py               coda dei job e scheduler
 frontend/                   Next.js 15 + TypeScript + Tailwind, tema scuro, TradingView Lightweight Charts
 docs/                       architettura e criteri di accettazione per fase
 ```

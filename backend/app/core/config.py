@@ -45,6 +45,20 @@ class Settings(BaseSettings):
     allow_demo_paper_trading: bool = True  # ordini su dati DEMO sono marcati is_demo=True
     benchmark_symbols: list[str] = ["SPY.US", "QQQ.US", "VGK.US", "EXSA.DE", "CSSPX.MI"]
 
+    # --- Scanner (Fase 2) ---
+    regime_benchmarks: list[str] = ["SPY.US", "EXSA.DE"]
+    regime_vix: str | None = "VIX.INDEX"
+    regime_rates: str | None = "TNX.INDEX"
+    rs_benchmark_by_region: dict[str, str] = {"US": "SPY.US", "EU": "EXSA.DE"}
+    scan_schedule_utc: str | None = "22:30"  # giorni feriali, dopo la chiusura USA; None = disattivato
+    scan_history_years: int = 2
+    scan_request_pause_seconds: float = 0.25
+    scan_max_retries: int = 2
+    scan_min_price: float = 5.0
+    scan_min_market_cap: float = 1e9
+    scan_min_traded_value: float = 5e6
+    scan_max_spread_pct: float = 0.5
+
     # --- Profilo operativo / rischio (parametri iniziali, da validare) ---
     base_currency: str = "EUR"
     initial_paper_capital: Decimal = Decimal("10000")

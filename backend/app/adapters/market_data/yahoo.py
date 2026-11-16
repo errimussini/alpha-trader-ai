@@ -13,6 +13,7 @@ Convenzione ticker interna: SIMBOLO.EXCHANGE (es. AAPL.US, ENI.MI, SAP.DE, EXSA.
 from __future__ import annotations
 
 import math
+import time
 from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -45,6 +46,8 @@ _DEFAULT_DELAY = 15
 def yahoo_symbol(symbol: str, exchange: str) -> str:
     if exchange == "FOREX":
         return f"{symbol}=X"
+    if exchange == "INDEX":
+        return f"^{symbol}"
     if exchange not in EXCHANGE_SUFFIX:
         raise DataProviderError("yahoo", f"exchange '{exchange}' non mappato (supportati: {', '.join(EXCHANGE_SUFFIX)})")
     return f"{symbol}{EXCHANGE_SUFFIX[exchange]}"
@@ -74,8 +77,11 @@ class YahooAdapter(MarketDataAdapter):
     name = "yahoo"
     is_demo = False
 
+    INFO_TTL_SECONDS = 300
+
     def __init__(self, ticker_factory: Callable[[str], object] | None = None):
         self._factory = ticker_factory or _default_factory
+        self._info_cache: dict[str, tuple[float, dict]] = {}
 
     def _t(self, symbol: str, exchange: str):
         return self._factory(yahoo_symbol(symbol, exchange))
@@ -98,10 +104,17 @@ class YahooAdapter(MarketDataAdapter):
             configured=True,
         )
 
-    def _info_dict(self, symbol: str, exchange: str) -> dict:
+    def _info_dict(self, symbol: str, exchange: str, *, fresh: bool = False) -> dict:
+        """`info` di Yahoo, con cache breve per evitare richieste duplicate nella stessa scansione.
+        Le quotazioni (fresh=True) ignorano la cache."""
+        key = f"{symbol}.{exchange}"
+        hit = self._info_cache.get(key)
+        if hit and not fresh and time.monotonic() - hit[0] < self.INFO_TTL_SECONDS:
+            return hit[1]
         d = self._wrap(lambda: self._t(symbol, exchange).info, "anagrafica")
         if not isinstance(d, dict) or not d:
             raise DataProviderError(self.name, f"nessuna anagrafica per {symbol}.{exchange}")
+        self._info_cache[key] = (time.monotonic(), d)
         return d
 
     def get_instrument(self, symbol: str, exchange: str) -> InstrumentInfo:
@@ -147,7 +160,7 @@ class YahooAdapter(MarketDataAdapter):
         return BarSeries(symbol, exchange, bars, SOURCE, datetime.now(UTC))
 
     def get_quote(self, symbol: str, exchange: str) -> Quote:
-        d = self._info_dict(symbol, exchange)
+        d = self._info_dict(symbol, exchange, fresh=True)
         price = _dec(d.get("regularMarketPrice") or d.get("currentPrice"))
         ts = d.get("regularMarketTime")
         if price is None or not ts:
@@ -172,11 +185,13 @@ class YahooAdapter(MarketDataAdapter):
 
     def get_fundamentals(self, symbol: str, exchange: str) -> dict:
         d = self._info_dict(symbol, exchange)
+        mc, fcf = _dec(d.get("marketCap")), _dec(d.get("freeCashflow"))
+        extra = {"fcf_yield": float(fcf / mc)} if mc and fcf is not None and mc > 0 else {}
         keys = ("revenueGrowth", "earningsGrowth", "trailingEps", "forwardEps", "operatingMargins", "freeCashflow",
                 "totalDebt", "totalCash", "debtToEquity", "returnOnEquity", "returnOnAssets", "trailingPE",
                 "forwardPE", "enterpriseToEbitda", "priceToBook", "marketCap", "sector", "industry")
         return {"source": SOURCE, "retrieved_at": datetime.now(UTC).isoformat(),
-                "data": {k: d.get(k) for k in keys if d.get(k) is not None}}
+                "data": {k: d.get(k) for k in keys if d.get(k) is not None} | extra}
 
     def get_earnings_calendar(self, symbols: list[str], start: date, end: date) -> list[EventInfo]:
         out = []
